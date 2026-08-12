@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Just AI Telegram Bot</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Full-stack control panel</p>
+        <h1>Just AI Telegram Bot</h1>
+        <p>
+          Test the same OpenAI-backed assistant used by your Telegram bot before
+          sending it live to users.
+        </p>
+        <div id="status" class="status">Checking configuration…</div>
+      </section>
+
+      <section class="chat-card" aria-label="Web chat tester">
+        <div id="messages" class="messages"></div>
+        <form id="chat-form" class="composer">
+          <label class="sr-only" for="message">Message</label>
+          <textarea id="message" placeholder="Ask the assistant anything…" rows="3" required></textarea>
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+    <script src="/static/app.js" type="module"></script>
+  </body>
+</html>
