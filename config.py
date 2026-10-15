@@ -30,6 +30,20 @@ def required_env(name: str) -> str:
     return value
 
 
+def positive_int_env(name: str, default: int) -> int:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a positive integer") from exc
+    if value <= 0:
+        raise RuntimeError(f"{name} must be a positive integer")
+    return value
+
+
 def load_assistant_config() -> AssistantConfig:
     return AssistantConfig(
         openai_api_key=required_env("OPENAI_API_KEY"),
@@ -45,5 +59,5 @@ def load_bot_config() -> BotConfig:
         openai_model=assistant.openai_model,
         system_prompt=assistant.system_prompt,
         telegram_bot_token=required_env("TELEGRAM_BOT_TOKEN"),
-        poll_timeout=int(os.getenv("POLL_TIMEOUT", str(DEFAULT_POLL_TIMEOUT))),
+        poll_timeout=positive_int_env("POLL_TIMEOUT", DEFAULT_POLL_TIMEOUT),
     )

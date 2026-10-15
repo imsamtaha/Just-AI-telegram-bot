@@ -13,6 +13,8 @@ Copy `.env.example` to `.env` and set these variables:
 | `OPENAI_MODEL` | Required OpenAI model to use. Choose a currently available model for your account. |
 | `BOT_SYSTEM_PROMPT` | System-level behavior instructions for the assistant. |
 | `POLL_TIMEOUT` | Telegram long-poll timeout in seconds. |
+| `WEB_API_KEY` | Optional bearer token for protecting web chat. When set, clients must provide it. |
+| `WEB_RATE_LIMIT_REQUESTS` | Maximum web chat requests per caller per minute (defaults to 10). |
 
 > `OPENAI_MODEL` is required rather than hard-coded so deployments do not silently depend on a stale or unavailable model alias.
 
@@ -26,7 +28,7 @@ set -a && . ./.env && set +a
 uvicorn web_app:app --reload
 ```
 
-Open <http://127.0.0.1:8000> to use the browser chat tester. The web app requires `OPENAI_API_KEY` and `OPENAI_MODEL`; it does not require `TELEGRAM_BOT_TOKEN` unless you also run `bot.py`.
+Open <http://127.0.0.1:8000> to use the browser chat tester. The web app requires `OPENAI_API_KEY` and `OPENAI_MODEL`; it does not require `TELEGRAM_BOT_TOKEN` unless you also run `bot.py`. Set `WEB_API_KEY` if the site is publicly reachable and enter the same value in the optional UI field.
 
 ## Run the Telegram bot locally
 
@@ -55,4 +57,4 @@ docker run --env-file .env -p 8000:8000 --restart unless-stopped just-ai-telegra
 | --- | --- | --- |
 | `GET` | `/` | Serves the web chat UI. |
 | `GET` | `/api/status` | Reports whether required environment variables are present. |
-| `POST` | `/api/chat` | Sends `{ "message": "..." }` to the configured assistant and returns `{ "reply": "..." }`. |
+| `POST` | `/api/chat` | Rate-limited chat endpoint. If `WEB_API_KEY` is configured, send `Authorization: Bearer $WEB_API_KEY` with `{ "message": "..." }`. |
