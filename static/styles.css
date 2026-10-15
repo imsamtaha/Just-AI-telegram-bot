@@ -110,6 +110,7 @@ h1 {
   background: rgba(15, 23, 42, 0.75);
 }
 
+input,
 textarea {
   width: 100%;
   resize: vertical;
@@ -119,6 +120,10 @@ textarea {
   background: rgba(15, 23, 42, 0.95);
   color: var(--text);
   font: inherit;
+}
+
+#api-key {
+  grid-column: 1 / -1;
 }
 
 button {

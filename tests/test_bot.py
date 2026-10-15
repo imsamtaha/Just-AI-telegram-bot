@@ -21,8 +21,21 @@ sys.modules.setdefault(
 )
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from bot import send_message
-from config import AssistantConfig, BotConfig, load_assistant_config, load_bot_config
+import bot
+from bot import process_updates, send_message
+from config import (
+    AssistantConfig,
+    BotConfig,
+    load_assistant_config,
+    load_bot_config,
+    positive_int_env,
+)
+from openai_client import (
+    FALLBACK_RESPONSE,
+    OPENAI_RESPONSES_URL,
+    _extract_output_text,
+    create_openai_response,
+)
 
 
 class FakeResponse:
@@ -91,6 +104,14 @@ def test_load_bot_config_reads_environment(monkeypatch):
     )
 
 
+@pytest.mark.parametrize("value", ["0", "-1", "not-a-number"])
+def test_positive_int_env_rejects_invalid_values(monkeypatch, value):
+    monkeypatch.setenv("POLL_TIMEOUT", value)
+
+    with pytest.raises(RuntimeError, match="POLL_TIMEOUT must be a positive integer"):
+        positive_int_env("POLL_TIMEOUT", 30)
+
+
 def test_send_message_truncates_telegram_payload():
     session = FakeSession()
     config = BotConfig(
@@ -108,12 +129,40 @@ def test_send_message_truncates_telegram_payload():
     assert session.response.status_checked
 
 
-from openai_client import OPENAI_RESPONSES_URL, create_openai_response
+def test_process_updates_continues_after_failure(monkeypatch):
+    processed = []
+
+    async def fake_handle_update(session, config, update):
+        processed.append(update["update_id"])
+        if update["update_id"] == 1:
+            raise RuntimeError("Telegram rejected the reply")
+
+    monkeypatch.setattr(bot, "handle_update", fake_handle_update)
+    config = BotConfig("key", "model", "prompt", "token", 30)
+
+    offset = asyncio.run(
+        process_updates(object(), config, [{"update_id": 1}, {"update_id": 2}])
+    )
+
+    assert processed == [1, 2]
+    assert offset == 3
 
 
 class FakeJsonResponse(FakeResponse):
     async def json(self):
-        return {"output_text": "Hello from AI"}
+        return {
+            "output": [
+                {"type": "reasoning", "summary": []},
+                {
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [
+                        {"type": "output_text", "text": "Hello "},
+                        {"type": "output_text", "text": "from AI"},
+                    ],
+                },
+            ]
+        }
 
 
 class FakeOpenAISession(FakeSession):
@@ -150,3 +199,62 @@ def test_create_openai_response_builds_responses_payload():
         "instructions": "Be helpful",
         "input": "Hello",
     }
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (None, None),
+        ({}, None),
+        ({"output": "not-a-list"}, None),
+        ({"output": [None, {"type": "reasoning"}]}, None),
+        ({"output": [{"type": "message", "content": "bad"}]}, None),
+        (
+            {
+                "output": [
+                    {
+                        "type": "message",
+                        "content": [
+                            {"type": "refusal", "refusal": "No"},
+                            {"type": "output_text", "text": None},
+                        ],
+                    }
+                ]
+            },
+            None,
+        ),
+        (
+            {
+                "output": [
+                    {
+                        "type": "message",
+                        "content": [{"type": "output_text", "text": "one"}],
+                    },
+                    {
+                        "type": "message",
+                        "content": [{"type": "output_text", "text": " two"}],
+                    },
+                ]
+            },
+            "one two",
+        ),
+    ],
+)
+def test_extract_output_text_handles_raw_response_variants(payload, expected):
+    assert _extract_output_text(payload) == expected
+
+
+class EmptyJsonResponse(FakeResponse):
+    async def json(self):
+        return {"output": []}
+
+
+def test_create_openai_response_uses_fallback_without_text():
+    session = FakeOpenAISession()
+    session.response = EmptyJsonResponse()
+
+    reply = asyncio.run(
+        create_openai_response(session, "key", "model", "prompt", "hello")
+    )
+
+    assert reply == FALLBACK_RESPONSE
