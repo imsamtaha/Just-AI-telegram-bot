@@ -7,7 +7,6 @@ import aiohttp
 from config import BotConfig, load_bot_config
 from creative_modes import build_creative_prompt, creative_help, parse_creative_command
 from openai_client import create_openai_response
-from risk_reference import risk_command_response
 
 
 TELEGRAM_MESSAGE_LIMIT = 4096
@@ -36,14 +35,9 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
     if not user_text:
         return
 
-    risk_reply = risk_command_response(user_text)
-    if risk_reply is not None:
-        await send_message(session, config, chat_id, risk_reply)
-        return
-
     mode, brief = parse_creative_command(user_text)
     if user_text.lower() in {"/start", "/help", "/creative"}:
-        await send_message(session, config, chat_id, creative_help() + "\n\n📘 ATLAS Risk Guide: /risk")
+        await send_message(session, config, chat_id, creative_help())
         return
 
     system_prompt = config.system_prompt
