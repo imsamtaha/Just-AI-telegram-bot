@@ -28,14 +28,6 @@ uvicorn web_app:app --reload
 
 Open <http://127.0.0.1:8000> to use the browser chat tester. The web app requires `OPENAI_API_KEY` and `OPENAI_MODEL`; it does not require `TELEGRAM_BOT_TOKEN` unless you also run `bot.py`.
 
-## ATLAS Risk Guide (read-only)
-
-The bot has a page-indexed, paraphrased reference to the uploaded `Risk Management tut V3.pdf` under `knowledge/risk_management_v3.json`. The original PDF is **not** stored or publicly distributed by this repository.
-
-In Telegram, send `/risk` to display the topic index, or `/risk trident`, `/risk reward`, `/risk sizing`, `/risk leverage`, `/risk drawdown`, `/risk management`, `/risk candles`, `/risk structure`, or `/risk foundation` for a short Arabic study explanation with source-page references. This command returns deterministic text and does not call OpenAI or connect to a broker. Telegram polling must be running with a configured bot token for the commands to reach users.
-
-The reference never changes ATLAS trade rules, creates orders, or approves live execution. See the source's caveats in the JSON document.
-
 ## Run the Telegram bot locally
 
 ```bash
