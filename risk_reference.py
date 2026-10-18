@@ -29,7 +29,7 @@ def risk_command_response(user_text: str) -> str | None:
         menu = "\n".join(f"• {item['key']}: {item['title_ar']}" for item in topics)
         return (
             "📘 ATLAS | دليل إدارة المخاطر V3\n"
-            "ملخّص تعليمي مستند إلى ملف من 40 صفحة. للقراءة والمحاكاة فقط.\n\n"
+            "ملخّص تعليمي من ملف 40 صفحة، للمراجعة وللمحاكاة فقط.\n\n"
             f"{menu}\n\nاكتب /risk trident أو /risk leverage مثلاً."
         )
     topic = next((row for row in topics if row.get("key") == key), None)
