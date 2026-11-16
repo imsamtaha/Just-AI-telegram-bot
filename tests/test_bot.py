@@ -21,8 +21,8 @@ sys.modules.setdefault(
 )
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from bot import send_message
-from config import AssistantConfig, BotConfig, load_assistant_config, load_bot_config
+from bot import handle_update, send_message
+from config import AssistantConfig, BotConfig, DEFAULT_ATLAS_DASHBOARD_URL, load_assistant_config, load_bot_config
 
 
 class FakeResponse:
@@ -79,6 +79,7 @@ def test_load_bot_config_reads_environment(monkeypatch):
     monkeypatch.setenv("OPENAI_MODEL", "example-model")
     monkeypatch.setenv("BOT_SYSTEM_PROMPT", "Be helpful")
     monkeypatch.setenv("POLL_TIMEOUT", "10")
+    monkeypatch.setenv("ATLAS_DASHBOARD_URL", "https://example.test/atlas")
 
     config = load_bot_config()
 
@@ -88,6 +89,7 @@ def test_load_bot_config_reads_environment(monkeypatch):
         openai_model="example-model",
         system_prompt="Be helpful",
         poll_timeout=10,
+        atlas_dashboard_url="https://example.test/atlas",
     )
 
 
@@ -106,6 +108,42 @@ def test_send_message_truncates_telegram_payload():
     assert session.url == "https://api.telegram.org/bottelegram-token/sendMessage"
     assert session.payload == {"chat_id": 123, "text": "x" * 4096}
     assert session.response.status_checked
+
+
+def test_atlas_command_sends_dashboard_link_without_openai():
+    session = FakeSession()
+    config = BotConfig(
+        telegram_bot_token="telegram-token",
+        openai_api_key="openai-key",
+        openai_model="example-model",
+        system_prompt="Be helpful",
+        poll_timeout=30,
+    )
+
+    asyncio.run(handle_update(session, config, {"message": {"chat": {"id": 123}, "text": "/atlas"}}))
+
+    assert session.payload["chat_id"] == 123
+    assert "sign-in and access requirements" in session.payload["text"]
+    assert session.payload["reply_markup"] == {
+        "inline_keyboard": [[{"text": "Open ATLAS dashboard", "url": DEFAULT_ATLAS_DASHBOARD_URL}]]
+    }
+    assert session.response.status_checked
+
+
+def test_atlas_command_supports_group_bot_suffix_and_configured_url():
+    session = FakeSession()
+    config = BotConfig(
+        telegram_bot_token="telegram-token",
+        openai_api_key="openai-key",
+        openai_model="example-model",
+        system_prompt="Be helpful",
+        poll_timeout=30,
+        atlas_dashboard_url="https://example.test/atlas",
+    )
+
+    asyncio.run(handle_update(session, config, {"message": {"chat": {"id": 123}, "text": "/atlas@JustAIBot"}}))
+
+    assert session.payload["reply_markup"]["inline_keyboard"][0][0]["url"] == "https://example.test/atlas"
 
 
 from openai_client import OPENAI_RESPONSES_URL, create_openai_response

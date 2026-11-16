@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 DEFAULT_SYSTEM_PROMPT = "You are a concise, helpful Telegram assistant."
 DEFAULT_POLL_TIMEOUT = 30
+DEFAULT_ATLAS_DASHBOARD_URL = "https://atlas-market.imsamtaha.chatgpt.site"
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,7 @@ class AssistantConfig:
 class BotConfig(AssistantConfig):
     telegram_bot_token: str
     poll_timeout: int
+    atlas_dashboard_url: str = DEFAULT_ATLAS_DASHBOARD_URL
 
     @property
     def telegram_api_base(self) -> str:
@@ -46,4 +48,5 @@ def load_bot_config() -> BotConfig:
         system_prompt=assistant.system_prompt,
         telegram_bot_token=required_env("TELEGRAM_BOT_TOKEN"),
         poll_timeout=int(os.getenv("POLL_TIMEOUT", str(DEFAULT_POLL_TIMEOUT))),
+        atlas_dashboard_url=os.getenv("ATLAS_DASHBOARD_URL", DEFAULT_ATLAS_DASHBOARD_URL).strip(),
     )

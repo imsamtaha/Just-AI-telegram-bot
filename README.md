@@ -13,8 +13,13 @@ Copy `.env.example` to `.env` and set these variables:
 | `OPENAI_MODEL` | Required OpenAI model to use. Choose a currently available model for your account. |
 | `BOT_SYSTEM_PROMPT` | System-level behavior instructions for the assistant. |
 | `POLL_TIMEOUT` | Telegram long-poll timeout in seconds. |
+| `ATLAS_DASHBOARD_URL` | Optional URL opened by the `/atlas` Telegram command. Defaults to the ATLAS dashboard. |
 
 > `OPENAI_MODEL` is required rather than hard-coded so deployments do not silently depend on a stale or unavailable model alias.
+
+## ATLAS dashboard command
+
+Send `/atlas` in Telegram to get a button linking to the ATLAS dashboard. The link opens the existing dashboard; its own sign-in and access requirements still apply. The bot does not fetch or disclose dashboard or account data. In groups, `/atlas@YourBotName` is also supported.
 
 ## Run the full-stack web app locally
 

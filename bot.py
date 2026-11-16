@@ -10,6 +10,7 @@ from openai_client import create_openai_response
 
 
 TELEGRAM_MESSAGE_LIMIT = 4096
+ATLAS_DASHBOARD_LABEL = "Open ATLAS dashboard"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger(__name__)
@@ -19,10 +20,24 @@ async def call_openai(session: aiohttp.ClientSession, config: BotConfig, user_te
     return await create_openai_response(session=session, api_key=config.openai_api_key, model=config.openai_model, system_prompt=system_prompt or config.system_prompt, user_text=user_text)
 
 
-async def send_message(session: aiohttp.ClientSession, config: BotConfig, chat_id: int, text: str) -> None:
-    payload = {"chat_id": chat_id, "text": text[:TELEGRAM_MESSAGE_LIMIT]}
+async def send_message(
+    session: aiohttp.ClientSession,
+    config: BotConfig,
+    chat_id: int,
+    text: str,
+    reply_markup: dict[str, Any] | None = None,
+) -> None:
+    payload: dict[str, Any] = {"chat_id": chat_id, "text": text[:TELEGRAM_MESSAGE_LIMIT]}
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
     async with session.post(f"{config.telegram_api_base}/sendMessage", json=payload) as response:
         response.raise_for_status()
+
+
+def is_atlas_command(text: str) -> bool:
+    """Recognize /atlas, including Telegram's /atlas@botname group syntax."""
+    command = text.strip().split(maxsplit=1)[0].split("@", maxsplit=1)[0].lower() if text.strip() else ""
+    return command == "/atlas"
 
 
 async def handle_update(session: aiohttp.ClientSession, config: BotConfig, update: dict[str, Any]) -> None:
@@ -37,7 +52,17 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
 
     mode, brief = parse_creative_command(user_text)
     if user_text.lower() in {"/start", "/help", "/creative"}:
-        await send_message(session, config, chat_id, creative_help())
+        await send_message(session, config, chat_id, creative_help() + "\n/atlas — open the ATLAS dashboard")
+        return
+
+    if is_atlas_command(user_text):
+        await send_message(
+            session,
+            config,
+            chat_id,
+            "Open the ATLAS dashboard. Its existing sign-in and access requirements still apply; this bot does not retrieve or expose dashboard or account data.",
+            reply_markup={"inline_keyboard": [[{"text": ATLAS_DASHBOARD_LABEL, "url": config.atlas_dashboard_url}]]},
+        )
         return
 
     system_prompt = config.system_prompt
