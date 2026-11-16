@@ -25,4 +25,10 @@ async def create_openai_response(
     async with session.post(OPENAI_RESPONSES_URL, json=payload, headers=headers) as response:
         response.raise_for_status()
         data = await response.json()
-    return data.get("output_text") or "I could not generate a response."
+    text = data.get("output_text") or "\n".join(
+        block["text"]
+        for item in data.get("output", [])
+        for block in item.get("content", [])
+        if block.get("type") == "output_text"
+    )
+    return text or "I could not generate a response."

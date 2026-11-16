@@ -61,3 +61,18 @@ docker run --env-file .env -p 8000:8000 --restart unless-stopped just-ai-telegra
 | `GET` | `/` | Serves the web chat UI. |
 | `GET` | `/api/status` | Reports whether required environment variables are present. |
 | `POST` | `/api/chat` | Sends `{ "message": "..." }` to the configured assistant and returns `{ "reply": "..." }`. |
+
+## Claude API and performance
+
+To use Claude for both Telegram and the web UI, set `AI_PROVIDER=claude`,
+`ANTHROPIC_API_KEY`, and `ANTHROPIC_MODEL` to a model available in your Anthropic
+account. OpenAI credentials are not required in Claude mode. Restart the process
+after changing configuration. `AI_PROVIDER=openai` remains the default.
+
+The web server reuses an HTTP connection pool across requests. Telegram processes
+up to eight chats concurrently within each polling batch, preserving ordering
+within each chat. Delivery failures are isolated so one failed reply does not stop
+polling. OpenAI REST response content blocks are now parsed correctly.
+
+This repository is a chat assistant with an ATLAS dashboard link. It does not
+retrieve live prices, connect to a brokerage, or execute trades.

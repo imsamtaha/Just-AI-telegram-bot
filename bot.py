@@ -7,6 +7,7 @@ import aiohttp
 from config import BotConfig, load_bot_config
 from creative_modes import build_creative_prompt, creative_help, parse_creative_command
 from openai_client import create_openai_response
+from claude_client import create_claude_response
 
 
 TELEGRAM_MESSAGE_LIMIT = 4096
@@ -17,7 +18,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 async def call_openai(session: aiohttp.ClientSession, config: BotConfig, user_text: str, system_prompt: str | None = None) -> str:
-    return await create_openai_response(session=session, api_key=config.openai_api_key, model=config.openai_model, system_prompt=system_prompt or config.system_prompt, user_text=user_text)
+    create_response = create_claude_response if config.ai_provider == "claude" else create_openai_response
+    return await create_response(session=session, api_key=config.openai_api_key, model=config.openai_model, system_prompt=system_prompt or config.system_prompt, user_text=user_text)
 
 
 async def send_message(
@@ -74,7 +76,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
     try:
         answer = await call_openai(session, config, request_text, system_prompt)
     except Exception:
-        LOGGER.exception("OpenAI request failed")
+        LOGGER.error("AI request failed")
         answer = "Sorry, I could not reach the AI service right now."
 
     await send_message(session, config, chat_id, answer)
@@ -97,9 +99,24 @@ async def poll_updates(config: BotConfig) -> None:
                 await asyncio.sleep(5)
                 continue
 
+            # Different chats progress concurrently; each chat retains message order.
+            chats: dict[int, list[dict[str, Any]]] = {}
             for update in payload.get("result", []):
                 offset = update["update_id"] + 1
-                await handle_update(session, config, update)
+                message = update.get("message") or update.get("edited_message") or {}
+                chat_id = message.get("chat", {}).get("id", 0)
+                chats.setdefault(chat_id, []).append(update)
+            limit = asyncio.Semaphore(8)
+
+            async def process_chat(updates: list[dict[str, Any]]) -> None:
+                async with limit:
+                    for update in updates:
+                        try:
+                            await handle_update(session, config, update)
+                        except Exception:
+                            LOGGER.error("Update delivery failed: %s", update.get("update_id"))
+
+            await asyncio.gather(*(process_chat(updates) for updates in chats.values()))
 
 
 if __name__ == "__main__":
