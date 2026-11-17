@@ -16,6 +16,20 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 LOGGER = logging.getLogger(__name__)
 
 
+class PollingBlocked(RuntimeError):
+    """A deployment conflict that requires operator action."""
+
+
+async def check_polling(session, config):
+    async with session.get(f"{config.telegram_api_base}/getWebhookInfo") as response:
+        response.raise_for_status()
+        payload = await response.json()
+    if not payload.get("ok") or not isinstance(payload.get("result"), dict):
+        raise PollingBlocked("Could not verify Telegram delivery configuration.")
+    if payload["result"].get("url"):
+        raise PollingBlocked("An existing webhook receives this bot's messages. Review that deployment before starting polling.")
+
+
 async def call_openai(session: aiohttp.ClientSession, config: BotConfig, user_text: str, system_prompt: str | None = None) -> str:
     return await create_openai_response(session=session, api_key=config.openai_api_key, model=config.openai_model, system_prompt=system_prompt or config.system_prompt, user_text=user_text)
 
@@ -73,8 +87,8 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
 
     try:
         answer = await call_openai(session, config, request_text, system_prompt)
-    except Exception:
-        LOGGER.exception("OpenAI request failed")
+    except Exception as exc:
+        LOGGER.error("OpenAI request failed (%s).", type(exc).__name__)
         answer = "Sorry, I could not reach the AI service right now."
 
     await send_message(session, config, chat_id, answer)
@@ -83,6 +97,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
 async def poll_updates(config: BotConfig) -> None:
     offset: int | None = None
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90)) as session:
+        await check_polling(session, config)
         while True:
             params: dict[str, Any] = {"timeout": config.poll_timeout, "allowed_updates": ["message", "edited_message"]}
             if offset is not None:
@@ -90,10 +105,14 @@ async def poll_updates(config: BotConfig) -> None:
 
             try:
                 async with session.get(f"{config.telegram_api_base}/getUpdates", params=params) as response:
+                    if response.status in (401, 409):
+                        raise PollingBlocked("Telegram rejected polling: check the bot token and other deployments.")
                     response.raise_for_status()
                     payload = await response.json()
-            except Exception:
-                LOGGER.exception("Telegram polling failed")
+            except PollingBlocked:
+                raise
+            except Exception as exc:
+                LOGGER.error("Telegram polling failed (%s).", type(exc).__name__)
                 await asyncio.sleep(5)
                 continue
 
@@ -103,4 +122,13 @@ async def poll_updates(config: BotConfig) -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(poll_updates(load_bot_config()))
+    try:
+        asyncio.run(poll_updates(load_bot_config()))
+    except PollingBlocked as exc:
+        LOGGER.error("%s", exc)
+        raise SystemExit(1)
+    except KeyboardInterrupt:
+        pass
+    except Exception as exc:
+        LOGGER.error("Bot stopped (%s). Check configuration and connectivity.", type(exc).__name__)
+        raise SystemExit(1)
