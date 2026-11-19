@@ -15,11 +15,12 @@ async def create_openai_response(
     model: str,
     system_prompt: str,
     user_text: str,
+    history: list[dict[str, str]] | None = None,
 ) -> str:
     payload: dict[str, Any] = {
         "model": model,
         "instructions": system_prompt,
-        "input": user_text,
+        "input": [*history, {"role": "user", "content": user_text}] if history else user_text,
     }
     headers = {"Authorization": f"Bearer {api_key}"}
     async with session.post(OPENAI_RESPONSES_URL, json=payload, headers=headers) as response:

@@ -76,3 +76,66 @@ polling. OpenAI REST response content blocks are now parsed correctly.
 
 This repository is a chat assistant with an ATLAS dashboard link. It does not
 retrieve live prices, connect to a brokerage, or execute trades.
+
+## Persistent Telegram memory and follow-ups
+
+The Telegram bot retains the last six successful conversation turns in private
+chats and sends that context to the configured Claude or OpenAI provider. Groups
+and the public web tester remain stateless. The bot follows the user's language;
+no live prices, account access, or trading execution are added.
+
+| Command | Purpose |
+| --- | --- |
+| `/remember I prefer Arabic and short answers` | Save a note (20 latest notes, up to 1000 characters each). |
+| `/memory` | Inspect your saved notes. |
+| `/forget` | Delete your notes and recent chat context. |
+| `/followup 30m Review my trading journal` | Schedule a follow-up after a delay. |
+| `/followup 2h Check my plan` | Schedule a follow-up in two hours. |
+| `/followups` | List follow-ups, IDs, status, and times in UTC. |
+| `/cancel 3` | Remove your follow-up with ID 3. |
+
+Follow-ups are explicit, one-time reminders, not autonomous market monitoring.
+Use `m`, `h`, or `d`, from one minute to 365 days. Up to 50 pending reminders per
+private chat are allowed. Keep the bot running with network access: a background
+worker checks every five seconds, including during AI calls. Overdue reminders
+are delivered when the bot restarts. Failed deliveries retry after 60 seconds,
+up to five attempts; `/followups` shows exhausted reminders as `failed`.
+`/forget` leaves reminders intact; cancel them separately.
+
+Set `BOT_MEMORY_PATH` (default `data/bot.sqlite3`) to a persistent local disk.
+The database is not encrypted; it contains private conversation text and is
+created with owner-only file permissions. Database files and logs are excluded
+from Git and Docker build context. Use one process and one database per bot token.
+Do not expose private data through backups. A process crash between a Telegram
+send and a database commit can cause a reminder to be delivered again; delivery
+is not exactly-once. Normal restarts retain the Telegram update offset.
+
+### Update and run on Termux
+
+After this change is merged into main, stop your current bot with Ctrl+C, then:
+
+```bash
+cd ~/Just-AI-telegram-bot
+git pull --ff-only origin main
+source .venv/bin/activate
+set -a
+source .env
+set +a
+python bot.py
+```
+
+No additional Python packages are needed for memory; SQLite ships with Python.
+Android may suspend Termux: disable battery optimization for Termux and consider
+`termux-wake-lock`. Reliable unattended delivery needs an always-running host.
+Telegram 401 and 409 errors now stop polling with a token-free diagnostic; fix
+credentials or duplicate polling/webhook configuration before restarting.
+Ctrl+C shuts down the reminder worker and HTTP session cleanly.
+
+For Docker bot mode, mount storage and override the default web command:
+
+```bash
+docker run --env-file .env -v just-ai-data:/app/data --restart unless-stopped just-ai-telegram-bot python bot.py
+```
+
+Run checks with `python -m pytest -q`. Tests use fake provider/Telegram calls;
+no real API keys or outgoing reminders are required.
