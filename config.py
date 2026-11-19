@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 DEFAULT_SYSTEM_PROMPT = "You are a concise, helpful Telegram assistant."
@@ -12,6 +12,7 @@ class AssistantConfig:
     openai_api_key: str
     openai_model: str
     system_prompt: str
+    ai_provider: str = field(default="openai", kw_only=True)
 
 
 @dataclass(frozen=True)
@@ -33,9 +34,14 @@ def required_env(name: str) -> str:
 
 
 def load_assistant_config() -> AssistantConfig:
+    provider = os.getenv("AI_PROVIDER", "openai").strip().lower()
+    if provider not in {"openai", "claude"}:
+        raise RuntimeError("AI_PROVIDER must be openai or claude")
+    prefix = "ANTHROPIC" if provider == "claude" else "OPENAI"
     return AssistantConfig(
-        openai_api_key=required_env("OPENAI_API_KEY"),
-        openai_model=required_env("OPENAI_MODEL"),
+        ai_provider=provider,
+        openai_api_key=required_env(f"{prefix}_API_KEY"),
+        openai_model=required_env(f"{prefix}_MODEL"),
         system_prompt=os.getenv("BOT_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
     )
 
@@ -43,6 +49,7 @@ def load_assistant_config() -> AssistantConfig:
 def load_bot_config() -> BotConfig:
     assistant = load_assistant_config()
     return BotConfig(
+        ai_provider=assistant.ai_provider,
         openai_api_key=assistant.openai_api_key,
         openai_model=assistant.openai_model,
         system_prompt=assistant.system_prompt,
