@@ -41,6 +41,7 @@ class FakeResponse:
 
 class FakeSession:
     def __init__(self) -> None:
+        self.payloads = []
         self.payload = None
         self.url = None
         self.response = FakeResponse()
@@ -48,6 +49,7 @@ class FakeSession:
     def post(self, url, json):
         self.url = url
         self.payload = json
+        self.payloads.append(json)
         return self.response
 
 
@@ -93,7 +95,7 @@ def test_load_bot_config_reads_environment(monkeypatch):
     )
 
 
-def test_send_message_truncates_telegram_payload():
+def test_send_message_splits_telegram_payload():
     session = FakeSession()
     config = BotConfig(
         telegram_bot_token="telegram-token",
@@ -106,7 +108,8 @@ def test_send_message_truncates_telegram_payload():
     asyncio.run(send_message(session, config, chat_id=123, text="x" * 5000))
 
     assert session.url == "https://api.telegram.org/bottelegram-token/sendMessage"
-    assert session.payload == {"chat_id": 123, "text": "x" * 4096}
+    assert [len(p["text"]) for p in session.payloads] == [4096, 904]
+    assert "".join(p["text"] for p in session.payloads) == "x" * 5000
     assert session.response.status_checked
 
 
