@@ -21,6 +21,8 @@
       <section class="chat-card" aria-label="Web chat tester">
         <div id="messages" class="messages"></div>
         <form id="chat-form" class="composer">
+          <label class="sr-only" for="api-key">Web API key</label>
+          <input id="api-key" type="password" autocomplete="off" placeholder="Web API key (if configured)" />
           <label class="sr-only" for="message">Message</label>
           <textarea id="message" placeholder="Ask the assistant anything…" rows="3" required></textarea>
           <button type="submit">Send</button>

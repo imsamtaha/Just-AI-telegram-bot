@@ -55,6 +55,25 @@ async def handle_update(
     await send_message(session, config, chat_id, answer)
 
 
+async def process_updates(
+    session: aiohttp.ClientSession,
+    config: BotConfig,
+    updates: list[dict[str, Any]],
+) -> int | None:
+    """Process a batch and discard individual updates that cannot be answered."""
+    offset: int | None = None
+    for update in updates:
+        offset = update["update_id"] + 1
+        try:
+            await handle_update(session, config, update)
+        except Exception:
+            LOGGER.exception(
+                "Telegram update %s failed; discarding it",
+                update["update_id"],
+            )
+    return offset
+
+
 async def poll_updates(config: BotConfig) -> None:
     offset: int | None = None
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90)) as session:
@@ -77,9 +96,11 @@ async def poll_updates(config: BotConfig) -> None:
                 await asyncio.sleep(5)
                 continue
 
-            for update in payload.get("result", []):
-                offset = update["update_id"] + 1
-                await handle_update(session, config, update)
+            next_offset = await process_updates(
+                session, config, payload.get("result", [])
+            )
+            if next_offset is not None:
+                offset = next_offset
 
 
 if __name__ == "__main__":

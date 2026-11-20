@@ -2,6 +2,7 @@ const statusEl = document.querySelector('#status');
 const messagesEl = document.querySelector('#messages');
 const formEl = document.querySelector('#chat-form');
 const inputEl = document.querySelector('#message');
+const apiKeyEl = document.querySelector('#api-key');
 
 function addMessage(role, text) {
   const bubble = document.createElement('div');
@@ -26,6 +27,7 @@ async function loadStatus() {
 formEl.addEventListener('submit', async (event) => {
   event.preventDefault();
   const message = inputEl.value.trim();
+  const apiKey = apiKeyEl.value;
   if (!message) return;
 
   addMessage('user', message);
@@ -33,9 +35,12 @@ formEl.addEventListener('submit', async (event) => {
   formEl.querySelector('button').disabled = true;
 
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
     const response = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ message }),
     });
     const data = await response.json();
