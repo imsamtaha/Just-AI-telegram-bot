@@ -139,3 +139,7 @@ docker run --env-file .env -v just-ai-data:/app/data --restart unless-stopped ju
 
 Run checks with `python -m pytest -q`. Tests use fake provider/Telegram calls;
 no real API keys or outgoing reminders are required.
+
+Telegram displays **typing…** while an AI reply is being generated and sent.
+The status refreshes every four seconds and stops after completion, failure,
+or cancellation. Quick commands such as `/memory` reply directly.
