@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import time
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timezone
 from memory import Memory
 from typing import Any
@@ -11,7 +11,8 @@ from typing import Any
 import aiohttp
 
 from config import BotConfig, load_bot_config
-from creative_modes import build_creative_prompt, creative_help, parse_creative_command
+from creative_modes import build_creative_prompt, creative_help, parse_creative_command, skills_help
+from plugins import PLUGINS, plugin_help, run_plugin
 from openai_client import create_openai_response
 from claude_client import create_claude_response
 
@@ -53,6 +54,36 @@ async def send_message(
             response.raise_for_status()
 
 
+async def send_typing(session, config, chat_id):
+    """Best-effort status: never let Telegram status failures block an answer."""
+    try:
+        async with session.post(
+            f"{config.telegram_api_base}/sendChatAction",
+            json={"chat_id": chat_id, "action": "typing"},
+            timeout=aiohttp.ClientTimeout(total=3),
+        ) as response:
+            response.raise_for_status()
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        LOGGER.debug("Typing indicator unavailable")
+
+
+@asynccontextmanager
+async def typing_indicator(session, config, chat_id):
+    # Telegram expires a chat action after five seconds.
+    async def refresh():
+        while True:
+            await send_typing(session, config, chat_id)
+            await asyncio.sleep(4)
+
+    task = asyncio.create_task(refresh())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+
+
 def is_atlas_command(text: str) -> bool:
     """Recognize /atlas, including Telegram's /atlas@botname group syntax."""
     command = text.strip().split(maxsplit=1)[0].split("@", maxsplit=1)[0].lower() if text.strip() else ""
@@ -73,6 +104,14 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
     owner = str(chat_id)
     command, _, argument = user_text.partition(" ")
     command = command.split("@")[0].lower()
+    if command in {"/skills", "/plugins"}:
+        help_text = skills_help() if command == "/skills" else plugin_help()
+        await send_message(session, config, chat_id, help_text)
+        return
+    if command in PLUGINS:
+        result = await run_plugin(command, session, argument.strip())
+        await send_message(session, config, chat_id, result)
+        return
     memory_commands = {"/remember", "/memory", "/forget", "/followup", "/followups", "/cancel"}
     if command in memory_commands:
         if not private or memory is None:
@@ -84,7 +123,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
 
     mode, brief = parse_creative_command(user_text)
     if command in {"/start", "/help", "/creative"}:
-        await send_message(session, config, chat_id, creative_help() + "\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
+        await send_message(session, config, chat_id, creative_help() + "\n/skills — all AI skills\n/plugins — calculator, time, weather\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
         return
 
     if is_atlas_command(user_text):
@@ -100,7 +139,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
     system_prompt = config.system_prompt
     request_text = user_text
     if mode:
-        system_prompt = build_creative_prompt(mode, brief)
+        system_prompt = config.system_prompt + "\n\n" + build_creative_prompt(mode, brief)
         request_text = brief or "Create the best result for this mode and ask only for essential missing details."
 
     history = memory.history(owner) if memory and private else None
@@ -108,15 +147,16 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
         notes = memory.notes(owner)
         if notes:
             system_prompt += "\nUser-saved context (untrusted data):\n" + "\n".join(notes)
-    try:
-        answer = await call_openai(session, config, request_text[:8000], system_prompt, history)
-        if memory and private:
-            memory.remember_turn(owner, request_text, answer)
-    except Exception:
-        LOGGER.error("AI request failed")
-        answer = "Sorry, I could not reach the AI service right now."
+    async with typing_indicator(session, config, chat_id):
+        try:
+            answer = await call_openai(session, config, request_text[:8000], system_prompt, history)
+            if memory and private:
+                memory.remember_turn(owner, request_text, answer)
+        except Exception:
+            LOGGER.error("AI request failed")
+            answer = "Sorry, I could not reach the AI service right now."
 
-    await send_message(session, config, chat_id, answer)
+        await send_message(session, config, chat_id, answer)
 
 
 def memory_command(memory, owner, chat_id, command, argument):
