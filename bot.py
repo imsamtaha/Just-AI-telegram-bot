@@ -5,27 +5,39 @@ import re
 import time
 from contextlib import suppress
 from datetime import datetime, timezone
-from memory import Memory
 from typing import Any
 
 import aiohttp
 
+from claude_client import create_claude_response
 from config import BotConfig, load_bot_config
 from creative_modes import build_creative_prompt, creative_help, parse_creative_command
+from memory import Memory
 from openai_client import create_openai_response
-from claude_client import create_claude_response
+from telegram_client import TelegramClient, TelegramAPIError
 
-
-TELEGRAM_MESSAGE_LIMIT = 4096
 ATLAS_DASHBOARD_LABEL = "Open ATLAS dashboard"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger(__name__)
 
 
-async def call_openai(session: aiohttp.ClientSession, config: BotConfig, user_text: str, system_prompt: str | None = None, history: list[dict[str, str]] | None = None) -> str:
+async def call_openai(
+    session: aiohttp.ClientSession,
+    config: BotConfig,
+    user_text: str,
+    system_prompt: str | None = None,
+    history: list[dict[str, str]] | None = None,
+) -> str:
     create_response = create_claude_response if config.ai_provider == "claude" else create_openai_response
-    return await create_response(session=session, api_key=config.openai_api_key, model=config.openai_model, system_prompt=system_prompt or config.system_prompt, user_text=user_text, history=history)
+    return await create_response(
+        session=session,
+        api_key=config.openai_api_key,
+        model=config.openai_model,
+        system_prompt=system_prompt or config.system_prompt,
+        user_text=user_text,
+        history=history,
+    )
 
 
 async def send_message(
@@ -35,31 +47,23 @@ async def send_message(
     text: str,
     reply_markup: dict[str, Any] | None = None,
 ) -> None:
-    # UTF-16 units keep emoji within Telegram's length limit too.
-    chunks, chunk, units = [], "", 0
-    for character in text or "I could not generate a response.":
-        size = len(character.encode("utf-16-le")) // 2
-        if units + size > TELEGRAM_MESSAGE_LIMIT:
-            chunks.append(chunk)
-            chunk, units = "", 0
-        chunk += character
-        units += size
-    chunks.append(chunk)
-    for index, chunk in enumerate(chunks):
-        payload: dict[str, Any] = {"chat_id": chat_id, "text": chunk}
-        if index == 0 and reply_markup is not None:
-            payload["reply_markup"] = reply_markup
-        async with session.post(f"{config.telegram_api_base}/sendMessage", json=payload) as response:
-            response.raise_for_status()
+    client = TelegramClient(session, config.telegram_api_base)
+    await client.send_text(chat_id, text, reply_markup)
 
 
 def is_atlas_command(text: str) -> bool:
     """Recognize /atlas, including Telegram's /atlas@botname group syntax."""
-    command = text.strip().split(maxsplit=1)[0].split("@", maxsplit=1)[0].lower() if text.strip() else ""
+    parts = text.strip().split(maxsplit=1)
+    command = parts[0].split("@", maxsplit=1)[0].lower() if parts else ""
     return command == "/atlas"
 
 
-async def handle_update(session: aiohttp.ClientSession, config: BotConfig, update: dict[str, Any], memory: Memory | None = None) -> None:
+async def handle_update(
+    session: aiohttp.ClientSession,
+    config: BotConfig,
+    update: dict[str, Any],
+    memory: Memory | None = None,
+) -> None:
     message = update.get("message") or update.get("edited_message")
     if not message or "text" not in message:
         return
@@ -84,7 +88,17 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
 
     mode, brief = parse_creative_command(user_text)
     if command in {"/start", "/help", "/creative"}:
-        await send_message(session, config, chat_id, creative_help() + "\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
+        help_text = (
+            creative_help()
+            + "\n/atlas — open the ATLAS dashboard"
+            + "\n/remember <fact> — save a note"
+            + "\n/memory — show saved notes"
+            + "\n/forget — clear notes and conversation"
+            + "\n/followup <delay> <text> — schedule a reminder"
+            + "\n/followups — list reminders"
+            + "\n/cancel <id> — cancel a reminder"
+        )
+        await send_message(session, config, chat_id, help_text)
         return
 
     if is_atlas_command(user_text):
@@ -145,11 +159,16 @@ def memory_command(memory, owner, chat_id, command, argument):
             return str(exc)
         return f"Follow-up #{reminder_id} scheduled for {datetime.fromtimestamp(due, timezone.utc):%Y-%m-%d %H:%M UTC}. Keep the bot running for delivery."
     if command == "/followups":
-        return "\n".join(f"#{r['id']} — {datetime.fromtimestamp(r['due'], timezone.utc):%Y-%m-%d %H:%M UTC} — {r['status']} — {r['content']}" for r in memory.followups(owner)) or "No pending follow-ups."
+        reminders = memory.followups(owner)
+        return "\n".join(
+            f"#{reminder['id']} — {datetime.fromtimestamp(reminder['due'], timezone.utc):%Y-%m-%d %H:%M UTC} — {reminder['status']} — {reminder['content']}"
+            for reminder in reminders
+        ) or "No pending follow-ups."
     if command == "/cancel":
         if not argument.isdigit():
             return "Usage: /cancel <id>"
         return "Follow-up cancelled." if memory.cancel(owner, int(argument)) else "Follow-up not found."
+    return "Unknown command."
 
 
 async def deliver_followups(session, config, memory):
@@ -165,7 +184,12 @@ async def deliver_followups(session, config, memory):
 
 async def followup_worker(session, config, memory):
     while True:
-        await deliver_followups(session, config, memory)
+        try:
+            await deliver_followups(session, config, memory)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            LOGGER.exception("Follow-up worker iteration failed")
         await asyncio.sleep(5)
 
 
@@ -182,46 +206,47 @@ async def poll_updates(config: BotConfig, memory: Memory | None = None) -> None:
 
 
 async def polling_loop(session, config, memory):
+    client = TelegramClient(session, config.telegram_api_base)
     offset = memory.offset() if memory else None
     while True:
-        params: dict[str, Any] = {"timeout": config.poll_timeout, "allowed_updates": ["message", "edited_message"]}
-        if offset is not None:
-            params["offset"] = offset
-
         try:
-            async with session.get(f"{config.telegram_api_base}/getUpdates", params=params) as response:
-                response.raise_for_status()
-                payload = await response.json()
-        except aiohttp.ClientResponseError as exc:
+            updates = await client.get_updates(timeout=config.poll_timeout, offset=offset)
+        except TelegramAPIError as exc:
             if exc.status in {401, 409}:
                 LOGGER.error("Telegram %s: check the token, stop duplicate bots, and check webhook settings.", exc.status)
                 return
-            LOGGER.error("Telegram polling HTTP %s", exc.status)
-            await asyncio.sleep(5)
-            continue
-        except Exception:
-            LOGGER.error("Telegram polling failed (details suppressed to protect the token)")
+            LOGGER.error("Telegram polling failed: %s", exc)
             await asyncio.sleep(5)
             continue
 
-        # Different chats progress concurrently; each chat retains message order.
+        # Process chats concurrently but preserve per-chat ordering. Only commit
+        # the contiguous successful prefix so a failed update is replayed.
         chats: dict[int, list[dict[str, Any]]] = {}
-        for update in payload.get("result", []):
-            offset = update["update_id"] + 1
+        for update in updates:
             message = update.get("message") or update.get("edited_message") or {}
             chat_id = message.get("chat", {}).get("id", 0)
             chats.setdefault(chat_id, []).append(update)
+
+        successful: set[int] = set()
         limit = asyncio.Semaphore(8)
 
-        async def process_chat(updates: list[dict[str, Any]]) -> None:
+        async def process_chat(chat_updates: list[dict[str, Any]]) -> None:
             async with limit:
-                for update in updates:
+                for update in chat_updates:
                     try:
                         await handle_update(session, config, update, memory)
                     except Exception:
-                        LOGGER.error("Update delivery failed: %s", update.get("update_id"))
+                        LOGGER.error("Update processing failed: %s", update.get("update_id"))
+                        break
+                    successful.add(update["update_id"])
 
-        await asyncio.gather(*(process_chat(updates) for updates in chats.values()))
+        await asyncio.gather(*(process_chat(chat_updates) for chat_updates in chats.values()))
+        for update in updates:
+            update_id = update["update_id"]
+            if update_id not in successful:
+                break
+            offset = update_id + 1
+
         if memory and offset is not None:
             memory.set_offset(offset)
 
