@@ -11,7 +11,8 @@ from typing import Any
 import aiohttp
 
 from config import BotConfig, load_bot_config
-from creative_modes import build_creative_prompt, creative_help, parse_creative_command
+from creative_modes import build_creative_prompt, creative_help, parse_creative_command, skills_help
+from plugins import PLUGINS, plugin_help, run_plugin
 from openai_client import create_openai_response
 from claude_client import create_claude_response
 
@@ -103,6 +104,14 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
     owner = str(chat_id)
     command, _, argument = user_text.partition(" ")
     command = command.split("@")[0].lower()
+    if command in {"/skills", "/plugins"}:
+        help_text = skills_help() if command == "/skills" else plugin_help()
+        await send_message(session, config, chat_id, help_text)
+        return
+    if command in PLUGINS:
+        result = await run_plugin(command, session, argument.strip())
+        await send_message(session, config, chat_id, result)
+        return
     memory_commands = {"/remember", "/memory", "/forget", "/followup", "/followups", "/cancel"}
     if command in memory_commands:
         if not private or memory is None:
@@ -114,7 +123,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
 
     mode, brief = parse_creative_command(user_text)
     if command in {"/start", "/help", "/creative"}:
-        await send_message(session, config, chat_id, creative_help() + "\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
+        await send_message(session, config, chat_id, creative_help() + "\n/skills — all AI skills\n/plugins — calculator, time, weather\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
         return
 
     if is_atlas_command(user_text):
@@ -130,7 +139,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
     system_prompt = config.system_prompt
     request_text = user_text
     if mode:
-        system_prompt = build_creative_prompt(mode, brief)
+        system_prompt = config.system_prompt + "\n\n" + build_creative_prompt(mode, brief)
         request_text = brief or "Create the best result for this mode and ask only for essential missing details."
 
     history = memory.history(owner) if memory and private else None

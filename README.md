@@ -140,6 +140,34 @@ docker run --env-file .env -v just-ai-data:/app/data --restart unless-stopped ju
 Run checks with `python -m pytest -q`. Tests use fake provider/Telegram calls;
 no real API keys or outgoing reminders are required.
 
-Telegram displays **typing…** while an AI reply is being generated and sent.
-The status refreshes every four seconds and stops after completion, failure,
-or cancellation. Quick commands such as `/memory` reply directly.
+## Skills and plugins
+
+Send `/skills` to browse AI skills: `/writer`, `/translate`, `/coder`, `/plan`,
+`/tutor`, `/summarize`, `/trading`, and `/risk`, alongside existing creative modes.
+Follow a command with your brief, e.g. `/translate Translate to Arabic: Hello`.
+Skills use the selected Claude/OpenAI model, base instructions, and private-chat
+memory. They produce text; they do not execute code or trades, generate image
+files, browse the web, or access accounts. A valid provider API key is required.
+
+Send `/plugins` to see explicit utility commands:
+
+- `/calc (2500 * 0.02) / 5` — bounded arithmetic, without eval or shell access.
+- `/time Asia/Beirut` — timezone-aware current time; defaults to UTC.
+- `/weather Beirut` — current weather from Open-Meteo's public geocoding and
+  forecast endpoints, with location and observation time. First matching city
+  is used. City search text and coordinates are sent to Open-Meteo. Check its
+  service terms before commercial use; outages and rate limits may apply.
+
+Utility commands bypass the AI provider and do not enter conversation memory.
+The current startup configuration still requires AI credentials. Commands with
+Telegram's `@BotName` suffix are recognized. Python needs system timezone data
+(e.g. `tzdata` on Ubuntu) for named timezones.
+
+`plugins.py` contains an explicit registry. Developers can add an async handler
+with `@register('/command', 'description')`; handlers receive the pooled HTTP
+session and command arguments and return text. This is a built-in plugin
+framework, not a marketplace or a bridge to ChatGPT connected apps. No third-party
+code is dynamically downloaded or executed. External account integrations need
+separate authentication and implementation.
+
+AI replies also retain the typing indicator from the previous upgrade.
