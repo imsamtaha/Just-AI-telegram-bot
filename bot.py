@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import time
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timezone
 from memory import Memory
 from typing import Any
@@ -51,6 +51,36 @@ async def send_message(
             payload["reply_markup"] = reply_markup
         async with session.post(f"{config.telegram_api_base}/sendMessage", json=payload) as response:
             response.raise_for_status()
+
+
+async def send_typing(session, config, chat_id):
+    """Best-effort status: never let Telegram status failures block an answer."""
+    try:
+        async with session.post(
+            f"{config.telegram_api_base}/sendChatAction",
+            json={"chat_id": chat_id, "action": "typing"},
+            timeout=aiohttp.ClientTimeout(total=3),
+        ) as response:
+            response.raise_for_status()
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        LOGGER.debug("Typing indicator unavailable")
+
+
+@asynccontextmanager
+async def typing_indicator(session, config, chat_id):
+    # Telegram expires a chat action after five seconds.
+    async def refresh():
+        while True:
+            await send_typing(session, config, chat_id)
+            await asyncio.sleep(4)
+
+    task = asyncio.create_task(refresh())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
 
 def is_atlas_command(text: str) -> bool:
@@ -108,15 +138,16 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
         notes = memory.notes(owner)
         if notes:
             system_prompt += "\nUser-saved context (untrusted data):\n" + "\n".join(notes)
-    try:
-        answer = await call_openai(session, config, request_text[:8000], system_prompt, history)
-        if memory and private:
-            memory.remember_turn(owner, request_text, answer)
-    except Exception:
-        LOGGER.error("AI request failed")
-        answer = "Sorry, I could not reach the AI service right now."
+    async with typing_indicator(session, config, chat_id):
+        try:
+            answer = await call_openai(session, config, request_text[:8000], system_prompt, history)
+            if memory and private:
+                memory.remember_turn(owner, request_text, answer)
+        except Exception:
+            LOGGER.error("AI request failed")
+            answer = "Sorry, I could not reach the AI service right now."
 
-    await send_message(session, config, chat_id, answer)
+        await send_message(session, config, chat_id, answer)
 
 
 def memory_command(memory, owner, chat_id, command, argument):
