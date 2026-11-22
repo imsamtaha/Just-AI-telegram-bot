@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY bot.py config.py creative_modes.py openai_client.py claude_client.py memory.py plugins.py web_app.py ./
+COPY bot.py config.py creative_modes.py openai_client.py claude_client.py memory.py plugins.py trading_tools.py web_app.py ./
 COPY static ./static
 
 EXPOSE 8000

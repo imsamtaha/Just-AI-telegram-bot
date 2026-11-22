@@ -171,3 +171,28 @@ code is dynamically downloaded or executed. External account integrations need
 separate authentication and implementation.
 
 AI replies also retain the typing indicator from the previous upgrade.
+
+## Trading tools
+
+`/tradingtools` lists commands. Tools run without an AI request:
+
+| Command | Purpose |
+| --- | --- |
+| `/quote BTC-USD` | Coinbase Exchange last-trade price and timestamp; flags trades older than five minutes. |
+| `/technical BTC-USD 1h` | SMA20 and RSI14 using simple averages over closed, continuous candles. Supports 5m, 15m, 1h, 1d. |
+| `/size 10000 1 100 95` | Equity, risk percent, entry, stop → risk budget, units and notional. |
+| `/rr 100 95 110` | Entry, stop, target → reward/risk and break-even win rate before costs. |
+
+Public market data supports Coinbase crypto pairs only; availability and API rate
+limits apply. No stock/forex feed, broker credentials, orders, or automated trading
+are added. Technical calculations exclude the forming candle and flag stale data.
+RSI uses simple averages, not Wilder smoothing; values may differ from charts.
+Sizing assumes linear instruments with identical quote currency for equity and
+prices. It ignores fees, slippage, gaps, leverage and contract multipliers.
+
+AI commands `/technicalanalyst`, `/tradeplan`, `/journal`, and `/backtest` provide
+analysis of supplied data, conditional plans, journal review, and backtest design.
+They require a working AI key and cannot automatically call these tools, execute
+code, store a full journal, or fetch prices. Paste tool results into your analysis
+request. Existing `/trading` and `/risk` remain available. No live signals or
+backtest results are fabricated.
