@@ -13,6 +13,7 @@ import aiohttp
 from config import BotConfig, load_bot_config
 from creative_modes import build_creative_prompt, creative_help, parse_creative_command, skills_help
 from plugins import PLUGINS, plugin_help, run_plugin
+import trading_tools  # Register read-only trading plugins.
 from openai_client import create_openai_response
 from claude_client import create_claude_response
 
@@ -104,6 +105,9 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
     owner = str(chat_id)
     command, _, argument = user_text.partition(" ")
     command = command.split("@")[0].lower()
+    if command == "/tradingtools":
+        await send_message(session, config, chat_id, "Trading tools:\n/quote BTC-USD\n/technical BTC-USD 1h\n/size 10000 1 100 95\n/rr 100 95 110\nAI skills: /trading /risk /technicalanalyst /tradeplan /journal /backtest\nCrypto market data is from Coinbase. No live order execution.")
+        return
     if command in {"/skills", "/plugins"}:
         help_text = skills_help() if command == "/skills" else plugin_help()
         await send_message(session, config, chat_id, help_text)
@@ -123,7 +127,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
 
     mode, brief = parse_creative_command(user_text)
     if command in {"/start", "/help", "/creative"}:
-        await send_message(session, config, chat_id, creative_help() + "\n/skills — all AI skills\n/plugins — calculator, time, weather\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
+        await send_message(session, config, chat_id, creative_help() + "\n/skills — all AI skills\n/plugins — calculator, time, weather, trading\n/tradingtools — trading commands\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
         return
 
     if is_atlas_command(user_text):

@@ -110,5 +110,5 @@ async def weather(session, argument):
 async def run_plugin(command, session, argument):
     try:
         return await PLUGINS[command].handler(session, argument)
-    except (aiohttp.ClientError, TimeoutError, ValueError, KeyError, TypeError):
+    except (aiohttp.ClientError, TimeoutError, ValueError, KeyError, TypeError, ArithmeticError):
         return 'This plugin is temporarily unavailable. Try again later.'
