@@ -196,3 +196,10 @@ They require a working AI key and cannot automatically call these tools, execute
 code, store a full journal, or fetch prices. Paste tool results into your analysis
 request. Existing `/trading` and `/risk` remain available. No live signals or
 backtest results are fabricated.
+
+## tgcloud migration
+
+A serverless JavaScript port and installer are available in [cloud/README.md](cloud/README.md).
+It includes AI, cloud memory, skills and tools, but tgcloud's documented SDK has
+no scheduler: cloud follow-ups are checked on the next incoming message. Read
+that guide before replacing Python polling or deploying the cloud app.

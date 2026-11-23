@@ -1,0 +1,6 @@
+node_modules/
+.tgcloud/
+.env
+.env.*
+!.env.example
+tgcloud/lib/private_config.js
