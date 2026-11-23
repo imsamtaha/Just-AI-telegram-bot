@@ -1,0 +1,2 @@
+Do not rename this to .js or insert a key here. Run npm run configure locally.
+The real private_config.js is generated from .env and excluded from Git.
