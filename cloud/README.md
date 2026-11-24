@@ -187,3 +187,13 @@ revokes them. Groups direct customers to the bot's private chat. See
 [consumer-login.md](docs/consumer-login.md) for the customer flow, privacy details,
 new `justai_sessions` migration, and deployment instructions. This does not link
 Google accounts or enforce paid subscriptions. Existing customers must log in.
+
+## ATLAS Special Edition
+
+Authenticated `/start` now opens a bilingual personal home with market desk,
+AI briefing, trading skills, creative studio, private workspace counts and ATLAS
+shortcuts. `/home` (`/الرئيسية`), `/studio` (`/استوديو`), `/workspace` (`/مساحتي`),
+`/desk BTC-USD 1h` and `/brief BTC-USD 1h` are available.
+See [special-edition.md](docs/special-edition.md) for capabilities, data/AI limits
+and deployment instructions. Existing private login and schema are prerequisites;
+this edition adds no new database fields or paid-subscription claims.

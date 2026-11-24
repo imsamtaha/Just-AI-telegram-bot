@@ -1,3 +1,4 @@
+import { EDITION_NAME, editionActions, editionPanel } from './edition.js';
 // Trust identity only on Telegram updates delivered by tgcloud, never from command arguments.
 export const SESSION_MS = 30 * 86400000;
 export const BOT_URL = 'https://t.me/JustAI_chatbot';
@@ -43,8 +44,8 @@ export async function requirePrivateLogin({message,command,arabic,api,store,now}
   }
   if(command==='/login'){
     await store.login(owner,now,now+SESSION_MS);
-    await say('You are logged in privately with your Telegram account for 30 days. Send a message to chat, or use /skills and /trader. /logout ends this bot session.\n\n'+privacyText.en,
-      'سجّلت دخولك بالمحادثة الخاصة بحسابك على تلغرام لمدّة ٣٠ يوم. ابعت رسالة لنحكي، أو استعمل /مهارات و /متداول. /خروج بينهي جلسة البوت.\n\n'+privacyText.ar);
+    await say(EDITION_NAME+'\n\nYou are logged in privately with your Telegram account for 30 days. Send a message to chat, or use /skills and /trader. /logout ends this bot session.\n\n'+privacyText.en,
+      EDITION_NAME+'\n\nسجّلت دخولك بالمحادثة الخاصة بحسابك على تلغرام لمدّة ٣٠ يوم. ابعت رسالة لنحكي، أو استعمل /مهارات و /متداول. /خروج بينهي جلسة البوت.\n\n'+privacyText.ar,editionPanel('home',arabic).reply_markup);
     return false;
   }
   const session=await store.session(owner);
@@ -56,7 +57,7 @@ export async function requirePrivateLogin({message,command,arabic,api,store,now}
 }
 export function createCallbackHandler({api,handleMessage}) {
   return async function(query,ctx={}){
-    const commands={justai_language_ar:'/مساعدة',justai_language_en:'/help',justai_login:'/login',justai_login_ar:'/دخول',justai_privacy:'/privacy',justai_privacy_ar:'/خصوصية'};
+    const commands={...editionActions,justai_language_ar:'/مساعدة',justai_language_en:'/help',justai_login:'/login',justai_login_ar:'/دخول',justai_privacy:'/privacy',justai_privacy_ar:'/خصوصية'};
     const text=commands[query.data];
     if(!query.id)return;
     if(!text){await api.answerCallbackQuery({callback_query_id:query.id});return;}
