@@ -139,3 +139,27 @@ MIT-licensed Trader skill pack. Original hyphenated commands and Telegram-friend
 underscore names are supported. See [the adaptation and update guide](docs/trader-skill-adaptation.md)
 for capabilities, source attribution, and deployment steps. The Python tools,
 SEC/news feeds, unattended alerts and brokerage connectors are not installed.
+
+## Arabic commands
+
+Send `/مساعدة`, `/مهارات`, `/ادوات`, or `/متداول` for Arabic command lists.
+Examples: `/احفظ بفضّل اللبناني`, `/ذاكرة`, `/انسى`, `/ذكرني ٣٠د راجع الخطة`,
+`/متابعات`, `/إلغاء ١`, `/احسب ٢٥٠٠*٠٫٠٢`, `/سعر BTC-USD`,
+`/مؤشرات BTC-USD ١س`, `/حجم_الصفقة ١٠٠٠٠ ١ ١٠٠ ٩٥`, `/ميزانية`,
+`/فحص_المخاطر`, and `/مسودة_امر`. All original English commands remain available.
+Arabic aliases accept `@BotName` group suffixes, common alif/hamza variants and
+Arabic vowel marks. Both Arabic-Indic and Persian digits are accepted in numeric
+tool arguments. Compact reminder units: `د` minutes, `س` hours, `ي` days. Note,
+reminder and analysis text is preserved, including its original digits.
+
+Arabic help and memory/reminder confirmations use Lebanese phrasing. Arabic AI
+skill commands explicitly request Lebanese Arabic while respecting translation
+targets and requested registers. Tool data labels may still be English.
+Telegram's official slash-command menu accepts Latin letters, digits and
+underscores only; Arabic aliases work as typed message text, not registered
+BotFather command names. No menu-registration call is made.
+
+To update an existing cloud deployment, copy **both** `cloud/tgcloud/lib/arabic.js`
+and `cloud/tgcloud/lib/core.js` into `~/JustAI_chatbot/tgcloud/lib/`, then run
+`npx tgcloud push` in that project. Requires the previously deployed Trader skill
+pack modules. No credential or schema change is needed.
