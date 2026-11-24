@@ -19,7 +19,9 @@ Copy `.env.example` to `.env` and set these variables:
 
 ## ATLAS dashboard command
 
-Send `/atlas` in Telegram to get a button linking to the ATLAS dashboard. The link opens the existing dashboard; its own sign-in and access requirements still apply. The bot does not fetch or disclose dashboard or account data. In groups, `/atlas@YourBotName` is also supported.
+Send `/atlas` in Telegram to open [ATLAS Intelligence](https://justai-atlas.online/). The dashboard uses its existing sign-in controls. In groups, use `/atlas@YourBotName`. A link from the dashboard can use `https://t.me/YourBotName?start=atlas` to open the same menu in a private chat.
+
+If an existing deployment sets `ATLAS_DASHBOARD_URL` to the previous address, update that variable to `https://justai-atlas.online/` and restart the bot on its configured host.
 
 ## Run the full-stack web app locally
 

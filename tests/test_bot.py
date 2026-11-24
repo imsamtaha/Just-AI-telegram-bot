@@ -113,7 +113,8 @@ def test_send_message_splits_telegram_payload():
     assert session.response.status_checked
 
 
-def test_atlas_command_sends_dashboard_link_without_openai():
+@pytest.mark.parametrize("command", ["/atlas", "/start atlas"])
+def test_atlas_command_sends_dashboard_link_without_openai(command):
     session = FakeSession()
     config = BotConfig(
         telegram_bot_token="telegram-token",
@@ -123,13 +124,14 @@ def test_atlas_command_sends_dashboard_link_without_openai():
         poll_timeout=30,
     )
 
-    asyncio.run(handle_update(session, config, {"message": {"chat": {"id": 123}, "text": "/atlas"}}))
+    asyncio.run(handle_update(session, config, {"message": {"chat": {"id": 123}, "text": command}}))
 
     assert session.payload["chat_id"] == 123
     assert "sign-in and access requirements" in session.payload["text"]
     assert session.payload["reply_markup"] == {
         "inline_keyboard": [[{"text": "Open ATLAS dashboard", "url": DEFAULT_ATLAS_DASHBOARD_URL}]]
     }
+    assert DEFAULT_ATLAS_DASHBOARD_URL == "https://justai-atlas.online/"
     assert session.response.status_checked
 
 

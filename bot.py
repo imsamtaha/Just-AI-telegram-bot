@@ -82,12 +82,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
         await send_message(session, config, chat_id, reply)
         return
 
-    mode, brief = parse_creative_command(user_text)
-    if command in {"/start", "/help", "/creative"}:
-        await send_message(session, config, chat_id, creative_help() + "\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
-        return
-
-    if is_atlas_command(user_text):
+    if is_atlas_command(user_text) or (command == "/start" and argument.strip() == "atlas"):
         await send_message(
             session,
             config,
@@ -95,6 +90,11 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
             "Open the ATLAS dashboard. Its existing sign-in and access requirements still apply; this bot does not retrieve or expose dashboard or account data.",
             reply_markup={"inline_keyboard": [[{"text": ATLAS_DASHBOARD_LABEL, "url": config.atlas_dashboard_url}]]},
         )
+        return
+
+    mode, brief = parse_creative_command(user_text)
+    if command in {"/start", "/help", "/creative"}:
+        await send_message(session, config, chat_id, creative_help() + "\n/atlas — open the ATLAS dashboard\n/remember <fact> — save a note\n/memory — show saved notes\n/forget — clear notes and recent conversation\n/followup 30m <text> — schedule a reminder\n/followups — list reminders (UTC)\n/cancel <id> — cancel a reminder\nPrivate chats retain the last six conversation turns locally. Notes and context are sent to the configured AI provider.")
         return
 
     system_prompt = config.system_prompt
