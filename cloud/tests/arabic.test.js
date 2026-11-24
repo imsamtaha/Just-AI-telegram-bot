@@ -6,7 +6,7 @@ import { aliases } from '../tgcloud/lib/skills.js';
 import { toolCommands } from '../tgcloud/lib/tools.js';
 
 test('Arabic aliases cover valid core commands, tools and skills',()=>{
-  const core=new Set(['/start','/help','/skills','/plugins','/tradingtools','/trader','/remember','/memory','/forget','/followup','/followups','/cancel','/atlas']);
+  const core=new Set(['/start','/help','/skills','/plugins','/tradingtools','/trader','/remember','/memory','/forget','/followup','/followups','/cancel','/atlas','/login','/logout','/privacy']);
   for(const canonical of Object.values(arabicAliases))assert.ok(core.has(canonical)||toolCommands.has(canonical)||aliases[canonical],canonical);
   assert.equal(Object.values(arabicAliases).filter(c=>c.startsWith('/trader_')).length,11);
   assert.match(arabicHelp('trader'),/مسودة_امر/);
@@ -28,12 +28,12 @@ function app(){
   const sent=[],notes=[],scheduled=[];let payload;
   const handler=createHandler({
     api:{sendMessage:async m=>sent.push(m),sendChatAction:async()=>{}},
-    store:{seen:async()=>false,lock:async()=>true,unlock:async()=>{},mark:async()=>{},reminders:async()=>[],
+    store:{session:async()=>({expires:Number.MAX_SAFE_INTEGER}),login:async()=>{},logout:async()=>{},seen:async()=>false,lock:async()=>true,unlock:async()=>{},mark:async()=>{},reminders:async()=>[],
       context:async()=>({notes,history:[]}),note:async(o,n)=>notes.push(n),schedule:async(o,text,due)=>{scheduled.push({text,due});return 1;},turn:async()=>{}},
     fetch:async(url,init)=>{payload=JSON.parse(init.body);return {ok:true,json:async()=>({output_text:'أكيد'})};},
     config:{provider:'openai',model:'m',apiKey:'test',systemPrompt:'Base'},now:()=>0,
   });
-  return {sent,notes,scheduled,payload:()=>payload,run:async text=>handler({message_id:1,chat:{id:1,type:'private'},text})};
+  return {sent,notes,scheduled,payload:()=>payload,run:async text=>handler({message_id:1,from:{id:1},chat:{id:1,type:'private'},text})};
 }
 test('Arabic memory, localized help, and tools bypass AI',async()=>{
   const h=app();await h.run('/احفظ رقمي ١٢٣');assert.equal(h.notes[0],'رقمي ١٢٣');

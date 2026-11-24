@@ -37,7 +37,8 @@ const commands = [
 export function normalizeCommand(text){
   return text.split('@')[0].normalize('NFC').toLowerCase().replace(/[\u064b-\u065f\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا');
 }
-export const arabicAliases = Object.fromEntries(commands.map(([ar,en])=>[normalizeCommand('/'+ar),'/'+en]));
+const loginCommands=[['دخول','login','سجّل دخولك بحساب تلغرام'],['خروج','logout','أنهي جلسة البوت'],['خصوصية','privacy','كيف بتنحفظ بياناتك']];
+export const arabicAliases = Object.fromEntries([...commands,...loginCommands].map(([ar,en])=>[normalizeCommand('/'+ar),'/'+en]));
 Object.assign(arabicAliases,{'/تذكر':'/remember','/تذكير':'/followup','/الذاكرة':'/memory','/اوامر':'/help'});
 export function parseCommand(raw){
   const normalized=normalizeCommand(raw);
@@ -57,7 +58,7 @@ export function arabicHelp(group='help'){
   if(group==='trader')subset=commands.filter(([,en])=>en.startsWith('trader_'));
   else if(group==='skills')subset=commands.slice(20);
   else if(group==='tools')subset=commands.slice(13,20);
-  else subset=commands.slice(0,20);
+  else subset=[...loginCommands,...commands.slice(0,20)];
   return 'فيك تكتب هالأوامر بالعربي أو تستعمل مقابلها بالإنكليزي:\n'+
     subset.map(([ar,en,desc])=>`/${ar} — /${en}\n${desc}`).join('\n')+
     '\n\nبالتذكير: د=دقيقة، س=ساعة، ي=يوم. المتابعات بتنراجع بس وقت تبعت رسالة جديدة، مش تلقائياً وإنت غايب.'+

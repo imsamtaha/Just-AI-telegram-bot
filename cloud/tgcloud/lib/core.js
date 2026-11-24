@@ -1,3 +1,4 @@
+import { requirePrivateLogin } from './access.js';
 import { parseCommand, toolArgument, arabicHelp, arabicReminderNotice } from './arabic.js';
 import { skills, aliases } from './skills.js';
 import { traderHelp } from './trader_skills.js';
@@ -9,7 +10,7 @@ export async function send(api, chatId, text, extra={}) {
   if(chunk)await api.sendMessage({chat_id:chatId,text:chunk,...extra});
 }
 const reminderNotice='Cloud reminders are checked when you next message this bot, not at an unattended scheduled time.';
-const help='/trader — imported trader skill pack\n/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
+const help='/login — log in privately\n/logout — end bot session\n/privacy — data privacy\n/trader — imported trader skill pack\n/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
 export function createHandler({api,store,fetch,config,now=Date.now}) {
   return async function(message,ctx={}){
     if(typeof message.text!=='string'||!message.text.trim()||!message.chat?.id)return;
@@ -27,6 +28,9 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
       const {command,arabic}=parseCommand(raw);
       const argument=toolArgument(command,originalArgument);
       const local=(en,ar)=>arabic?ar:en;
+      if(!await requirePrivateLogin({message,command,arabic,api,store,now:now()})){
+        await store.mark(id,owner);return;
+      }
       const privateChat=message.chat.type==='private';
       if(privateChat){
         for(const r of await store.reminders(owner)){

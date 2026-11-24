@@ -31,15 +31,15 @@ test('commands route selected mode and supplied data, including group suffixes',
   let payload;const sent=[];
   const handler=createHandler({
     api:{sendMessage:async m=>sent.push(m),sendChatAction:async()=>{}},
-    store:{seen:async()=>false,lock:async()=>true,unlock:async()=>{},mark:async()=>{}},
+    store:{session:async()=>({expires:Number.MAX_SAFE_INTEGER}),reminders:async()=>[],context:async()=>({history:[],notes:[]}),turn:async()=>{},seen:async()=>false,lock:async()=>true,unlock:async()=>{},mark:async()=>{}},
     config:{provider:'openai',apiKey:'test',model:'m',systemPrompt:'Base'},
     fetch:async(url,init)=>{payload=JSON.parse(init.body);return {ok:true,json:async()=>({output_text:'Analysis'})};},
   });
   for(const command of ['/trader-risk@JustAI','/trader_risk@JustAI']){
-    await handler({message_id:1,chat:{id:-1,type:'group'},text:command+'\nBudget 1000\nCash 100'});
+    await handler({message_id:1,from:{id:1},chat:{id:1,type:'private'},text:command+'\nBudget 1000\nCash 100'});
     assert.match(payload.instructions,/Review supplied proposed orders sequentially/);
     assert.equal(payload.input.at(-1).content,'Budget 1000\nCash 100');
   }
-  await handler({message_id:2,chat:{id:-1,type:'group'},text:'/trader'});
+  await handler({message_id:2,from:{id:1},chat:{id:1,type:'private'},text:'/trader'});
   assert.match(sent.at(-1).text,/adapted analysis modes/);
 });

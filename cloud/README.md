@@ -178,3 +178,12 @@ as soon as the updated `core.js` is pushed. To override the destination, set
 from this repository, rerun `npm run justai:configure`, and push. Configuration
 requires HTTPS with no embedded credentials. The Python bot uses the same new
 default; an existing environment override still takes precedence.
+
+## Consumer private login
+
+Customers now log in inside `@JustAI_chatbot` using its Telegram login button or
+`/login` (`/دخول`). Private sessions expire after 30 days; `/logout` (`/خروج`)
+revokes them. Groups direct customers to the bot's private chat. See
+[consumer-login.md](docs/consumer-login.md) for the customer flow, privacy details,
+new `justai_sessions` migration, and deployment instructions. This does not link
+Google accounts or enforce paid subscriptions. Existing customers must log in.
