@@ -163,3 +163,18 @@ To update an existing cloud deployment, copy **both** `cloud/tgcloud/lib/arabic.
 and `cloud/tgcloud/lib/core.js` into `~/JustAI_chatbot/tgcloud/lib/`, then run
 `npx tgcloud push` in that project. Requires the previously deployed Trader skill
 pack modules. No credential or schema change is needed.
+
+## Current ATLAS link
+
+`/atlas` and `/اطلس` default to `https://justai-atlas.online/`, the homepage
+currently set on `imsamtaha/Trading-ai`. This replaces the older ChatGPT Sites
+address. It opens a link; no account data or access permissions are transferred.
+The homepage and `/dashboard` returned HTTP 403 from the development workspace,
+so live dashboard availability could not be confirmed.
+
+Existing deployed configuration without `atlasDashboardUrl` uses the new default
+as soon as the updated `core.js` is pushed. To override the destination, set
+`ATLAS_DASHBOARD_URL` in the cloud project's `.env`, update `scripts/configure.mjs`
+from this repository, rerun `npm run justai:configure`, and push. Configuration
+requires HTTPS with no embedded credentials. The Python bot uses the same new
+default; an existing environment override still takes precedence.
