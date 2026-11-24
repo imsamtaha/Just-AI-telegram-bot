@@ -72,3 +72,29 @@ test('missing session storage fails closed before any AI request',async()=>{
   const h=harness();h.store.session=async()=>{throw new Error('DB offline');};
   await assert.rejects(h.handler(h.message('Hello')),/DB offline/);assert.equal(h.aiCalls(),0);assert.equal(h.privateReads(),0);
 });
+
+test('entry exposes Arabic and English buttons before authentication',async()=>{
+  const h=harness();await h.handler(h.message('/start'));
+  const buttons=h.messages.at(-1).reply_markup.inline_keyboard.flat();
+  assert.ok(buttons.some(b=>b.text==='العربية'&&b.callback_data==='justai_language_ar'));
+  assert.ok(buttons.some(b=>b.text==='English'&&b.callback_data==='justai_language_en'));
+  assert.match(h.messages.at(-1).text,/تختار العربية/);assert.equal(h.sessions.size,0);
+});
+test('Arabic language choice localizes entry without granting a session',async()=>{
+  const h=harness(),callback=createCallbackHandler({api:h.api,handleMessage:h.handler});
+  const q={id:'language',data:'justai_language_ar',from:{id:7},message:{message_id:40,chat:{id:7,type:'private'}}};
+  await callback(q,{update:{update_id:101}});
+  assert.match(h.messages.at(-1).text,/أهلا فيك/);assert.equal(h.sessions.size,0);
+  assert.equal(h.messages.at(-1).reply_markup.inline_keyboard[0][0].callback_data,'justai_login_ar');
+  await callback({...q,id:'login',data:'justai_login_ar'},{update:{update_id:102}});
+  assert.equal(h.sessions.has('7'),true);assert.match(h.messages.at(-1).text,/سجّلت دخولك/);
+});
+test('Arabic device starts in Arabic but explicit English switches entry back',async()=>{
+  const h=harness(),m=h.message('/start');m.from.language_code='ar-LB';await h.handler(m);
+  assert.match(h.messages.at(-1).text,/أهلا فيك/);
+  const callback=createCallbackHandler({api:h.api,handleMessage:h.handler});
+  await callback({id:'en',data:'justai_language_en',from:{id:1,language_code:'ar'},message:{message_id:40,chat:{id:1,type:'private'}}},{update:{update_id:105}});
+  assert.match(h.messages.at(-1).text,/Welcome to Just AI/);
+  assert.equal(h.messages.at(-1).reply_markup.inline_keyboard[0][0].callback_data,'justai_login');
+  assert.equal(h.sessions.size,0);
+});

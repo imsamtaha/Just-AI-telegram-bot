@@ -81,3 +81,19 @@ If rolling back, restore the previous handler/core and remove the new callback
 handler from the local manifest before pushing. Leave justai_sessions in place;
 no destructive table migration is needed. Never bypass the gate as a workaround
 for a missing migration or failed session query.
+
+## Entry language selector
+
+The login, privacy and logout cards display **العربية** and **English** buttons.
+Customers can switch the entry screen before they log in. An initial `/start`
+from a Telegram account with an Arabic interface opens the Arabic login card;
+explicitly choosing English overrides that initial detection. Arabic uses
+Lebanese wording, including the login button, privacy copy and login confirmation.
+Choosing a language does not authenticate the user: they must still press the
+login button or send `/login` / `/دخول`. The choice controls the displayed entry
+card; it is not a stored account-language preference. Normal AI replies still
+follow the user's message language and explicit language requests.
+
+For an already deployed private-login version, copy just
+`cloud/tgcloud/lib/access.js` to the corresponding cloud library folder and run
+`npx tgcloud push`. No schema migration or credential update is needed.
