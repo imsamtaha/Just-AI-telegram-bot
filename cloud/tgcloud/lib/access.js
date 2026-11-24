@@ -5,8 +5,18 @@ export const privacyText = {
   en:'This is a private one-to-one bot chat, not end-to-end encrypted chat. Memory is separated by your Telegram account. The bot operator can access cloud storage, and your messages/context are sent to the configured AI provider. Avoid sending passwords or API keys. /forget clears saved notes and recent context; cancel reminders separately. /logout ends this bot session, not your Telegram session. This login does not link Google/ATLAS accounts, verify a paid subscription, or connect a broker.',
   ar:'هيدي محادثة خاصة بينك وبين البوت، مش محادثة مشفّرة من الطرف للطرف. الذاكرة منفصلة حسب حسابك على تلغرام. مشغّل البوت فيه يوصل للتخزين بالسحابة، ورسائلك وسياق الحديث بينبعتوا لمزوّد الذكاء الاصطناعي. ما تبعت كلمات سر أو مفاتيح API. /انسى بيمسح الملاحظات وسياق الحديث؛ المتابعات إلغيها لحالها. /خروج بينهي جلسة البوت، مش جلسة تلغرام. هالدخول ما بيربط حساب Google أو ATLAS، وما بيتحقّق من اشتراك مدفوع أو بيربط وسيط.',
 };
+function entryKeyboard(arabic, includePrivacy=true) {
+  const inline_keyboard=[
+    [{text:arabic?'سجّل دخول بتلغرام':'Log in with Telegram',callback_data:arabic?'justai_login_ar':'justai_login'}],
+    [{text:'العربية',callback_data:'justai_language_ar'},{text:'English',callback_data:'justai_language_en'}],
+  ];
+  if(includePrivacy)inline_keyboard.push([{text:arabic?'الخصوصية':'Privacy',callback_data:arabic?'justai_privacy_ar':'justai_privacy'}]);
+  return {inline_keyboard};
+}
 export async function requirePrivateLogin({message,command,arabic,api,store,now}) {
   const chatId=message.chat.id;
+  // Auto-detect only the initial /start; an explicit English choice must win.
+  if(command==='/start' && typeof message.from?.language_code==='string' && message.from.language_code.toLowerCase().startsWith('ar'))arabic=true;
   const say=(en,ar,reply_markup)=>api.sendMessage({chat_id:chatId,text:arabic?ar:en,...(reply_markup?{reply_markup}:{})});
   if(message.chat.type!=='private'){
     await say('Chat with Just AI privately to log in. No customer conversations or memory are available in groups.',
@@ -22,13 +32,13 @@ export async function requirePrivateLogin({message,command,arabic,api,store,now}
   }
   const owner=String(userId);
   if(command==='/privacy'){
-    await api.sendMessage({chat_id:chatId,text:privacyText[arabic?'ar':'en']});return false;
+    await api.sendMessage({chat_id:chatId,text:privacyText[arabic?'ar':'en'],reply_markup:entryKeyboard(arabic,false)});return false;
   }
   if(command==='/logout'){
     await store.logout(owner);
     await say('Logged out of this bot. Saved memory and reminders remain; log in and use /forget or /cancel to manage them.',
       'طلعت من جلسة البوت. الذاكرة والمتابعات بعدها محفوظة؛ سجّل دخول واستعمل /انسى أو /الغاء لتديرها.',
-      {inline_keyboard:[[{text:arabic?'سجّل دخول بتلغرام':'Log in with Telegram',callback_data:arabic?'justai_login_ar':'justai_login'}]]});
+      entryKeyboard(arabic));
     return false;
   }
   if(command==='/login'){
@@ -39,15 +49,14 @@ export async function requirePrivateLogin({message,command,arabic,api,store,now}
   }
   const session=await store.session(owner);
   if(session&&session.expires>now)return true;
-  await say('Welcome to Just AI. Log in with your Telegram identity to start a private conversation. No password or phone number is requested.\n\n'+privacyText.en,
-    'أهلا فيك بـ Just AI. سجّل دخول بهويتك على تلغرام لنبلّش محادثة خاصة. ما منطلب كلمة سر أو رقم تلفون.\n\n'+privacyText.ar,
-    {inline_keyboard:[[{text:arabic?'سجّل دخول بتلغرام':'Log in with Telegram',callback_data:arabic?'justai_login_ar':'justai_login'}],
-      [{text:arabic?'الخصوصية':'Privacy',callback_data:arabic?'justai_privacy_ar':'justai_privacy'}]]});
+  await say('Welcome to Just AI. Log in with your Telegram identity to start a private conversation. No password or phone number is requested.\nفيك تختار العربية من الزر تحت.\n\n'+privacyText.en,
+    'أهلا فيك بـ Just AI. سجّل دخول بهويتك على تلغرام لنبلّش محادثة خاصة. ما منطلب كلمة سر أو رقم تلفون.\nChoose English using the button below.\n\n'+privacyText.ar,
+    entryKeyboard(arabic));
   return false;
 }
 export function createCallbackHandler({api,handleMessage}) {
   return async function(query,ctx={}){
-    const commands={justai_login:'/login',justai_login_ar:'/دخول',justai_privacy:'/privacy',justai_privacy_ar:'/خصوصية'};
+    const commands={justai_language_ar:'/مساعدة',justai_language_en:'/help',justai_login:'/login',justai_login_ar:'/دخول',justai_privacy:'/privacy',justai_privacy_ar:'/خصوصية'};
     const text=commands[query.data];
     if(!query.id)return;
     if(!text){await api.answerCallbackQuery({callback_query_id:query.id});return;}
