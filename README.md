@@ -33,6 +33,29 @@ instructions for use on your own media.
 Open `/plugins` for Canva and tldraw shortcuts. These buttons open the tools in a
 browser, where you can paste the brief or storyboard from Telegram.
 
+### Canva MCP
+
+The optional `/canva <request>` command searches the configured Canva user's
+designs and reads design metadata through the official [Canva MCP server](https://www.canva.dev/docs/apps/mcp/).
+Set `CANVA_MCP_TELEGRAM_USER_ID` to the authorized Telegram user ID and
+`CANVA_MCP_ACCESS_TOKEN` to that same user's Canva MCP OAuth access token.
+Keep the token in private host configuration and replace it when it expires.
+With the OpenAI provider, use a Responses model that supports remote MCP.
+The command works only in the authorized user's private chat. It sends the
+explicit request to OpenAI and Canva without chat history or saved prompts.
+
+### Coding, personal assistance, and saved prompts
+
+- `/coding Review this Python function` or `برمجة راجع هذه الدالة`
+- `/personal Plan my week` or `مساعد رتّب أسبوعي`
+- `/addskill editor Rewrite in plain language` saves or updates a private prompt.
+- `/skill editor <task>` activates that prompt for one request.
+- `/skills` lists saved prompts by name. `/delskill editor` deletes one.
+
+Prompts can be written in Arabic or English. Up to 20 private skills are stored
+in the bot's existing SQLite database and survive restarts when its data disk
+persists. Use `/delskill` to remove a saved prompt.
+
 ## Run the full-stack web app locally
 
 ```bash
