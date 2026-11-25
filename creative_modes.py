@@ -90,6 +90,5 @@ def creative_help() -> str:
         "/copyedit — revise copy\n"
         "/brand — brand identity\n"
         "/storyboard — shot-by-shot storyboards\n"
-        "/plugins — open Canva or tldraw\n"
         "\nExample: /graphic Create an Instagram launch poster for JUST AI."
     )
