@@ -13,6 +13,8 @@ class Memory:
         CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY, value INTEGER);
         CREATE TABLE IF NOT EXISTS history(id INTEGER PRIMARY KEY, owner TEXT, role TEXT, content TEXT);
         CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY, owner TEXT, content TEXT);
+        CREATE TABLE IF NOT EXISTS skills(owner TEXT, name TEXT, prompt TEXT,
+          PRIMARY KEY(owner, name));
         CREATE TABLE IF NOT EXISTS reminders(id INTEGER PRIMARY KEY, owner TEXT, chat_id INTEGER,
           content TEXT, due REAL, attempts INTEGER DEFAULT 0, status TEXT DEFAULT 'pending');
         ''')
@@ -43,6 +45,32 @@ class Memory:
         with self.db:
             self.db.execute('DELETE FROM history WHERE owner=?', (owner,))
             self.db.execute('DELETE FROM notes WHERE owner=?', (owner,))
+
+    def skills(self, owner):
+        return [row[0] for row in self.db.execute(
+            'SELECT name FROM skills WHERE owner=? ORDER BY name', (owner,))]
+
+    def skill(self, owner, name):
+        row = self.db.execute(
+            'SELECT prompt FROM skills WHERE owner=? AND name=?', (owner, name)
+        ).fetchone()
+        return row[0] if row else None
+
+    def save_skill(self, owner, name, prompt):
+        with self.db:
+            return self.db.execute(
+                'INSERT INTO skills(owner,name,prompt) SELECT ?,?,? WHERE '
+                '(SELECT count(*) FROM skills WHERE owner=?) < 20 '
+                'OR EXISTS(SELECT 1 FROM skills WHERE owner=? AND name=?) '
+                'ON CONFLICT(owner,name) DO UPDATE SET prompt=excluded.prompt',
+                (owner, name, prompt, owner, owner, name),
+            ).rowcount > 0
+
+    def delete_skill(self, owner, name):
+        with self.db:
+            return self.db.execute(
+                'DELETE FROM skills WHERE owner=? AND name=?', (owner, name)
+            ).rowcount > 0
 
     def schedule(self, owner, chat_id, text, due):
         if len(self.pending(owner)) >= 50:
