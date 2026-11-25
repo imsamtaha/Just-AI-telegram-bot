@@ -104,6 +104,15 @@ class Memory:
                             "status=CASE WHEN attempts>=4 THEN 'failed' ELSE 'pending' END WHERE id=?",
                             ((time.time() if now is None else now) + 60, reminder_id))
 
+    def preferred_language(self, owner):
+        row = self.db.execute('SELECT value FROM state WHERE key=?', (f'language:{owner}',)).fetchone()
+        return bool(row[0]) if row else None
+
+    def set_preferred_language(self, owner, lebanese):
+        with self.db:
+            self.db.execute('INSERT OR REPLACE INTO state(key,value) VALUES(?,?)',
+                            (f'language:{owner}', int(lebanese)))
+
     def offset(self):
         row = self.db.execute("SELECT value FROM state WHERE key='offset'").fetchone()
         return row[0] if row else None

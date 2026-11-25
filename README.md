@@ -30,19 +30,12 @@ to revise text, `/brand` for identity systems, and `/storyboard` for shot lists.
 Add your brief after the command. Photo and video modes produce editing
 instructions for use on your own media.
 
-Open `/plugins` for Canva and tldraw shortcuts. These buttons open the tools in a
-browser, where you can paste the brief or storyboard from Telegram.
+### Lebanese Arabic
 
-### Canva MCP
-
-The optional `/canva <request>` command searches the configured Canva user's
-designs and reads design metadata through the official [Canva MCP server](https://www.canva.dev/docs/apps/mcp/).
-Set `CANVA_MCP_TELEGRAM_USER_ID` to the authorized Telegram user ID and
-`CANVA_MCP_ACCESS_TOKEN` to that same user's Canva MCP OAuth access token.
-Keep the token in private host configuration and replace it when it expires.
-With the OpenAI provider, use a Responses model that supports remote MCP.
-The command works only in the authorized user's private chat. It sends the
-explicit request to OpenAI and Canva without chat history or saved prompts.
+Send `/start` and choose **لبناني** or **English**. You can also switch using
+`/ar` or `/en`. The choice is saved in private chats. Arabic commands work
+with or without a slash, for example `برمجة راجع هالكود` or `مهارات`.
+The assistant uses conversational Lebanese and can mirror Arabizi.
 
 ### Coding, personal assistance, and saved prompts
 
