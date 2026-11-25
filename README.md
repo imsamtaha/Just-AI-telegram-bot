@@ -19,9 +19,19 @@ Copy `.env.example` to `.env` and set these variables:
 
 ## ATLAS dashboard command
 
-Send `/atlas` in Telegram to open [ATLAS Intelligence](https://justai-atlas.online/). The dashboard uses its existing sign-in controls. In groups, use `/atlas@YourBotName`. A link from the dashboard can use `https://t.me/YourBotName?start=atlas` to open the same menu in a private chat.
+Send `/atlas` in Telegram to open [ATLAS Intelligence](https://justai-atlas.online/). Telegram chat is available as soon as you open the bot. The dashboard website manages access to its private pages. In groups, use `/atlas@YourBotName`. A link from the dashboard can use `https://t.me/YourBotName?start=atlas` to open the same menu in a private chat.
 
 If an existing deployment sets `ATLAS_DASHBOARD_URL` to the previous address, update that variable to `https://justai-atlas.online/` and restart the bot on its configured host.
+
+## Creative tools in Telegram
+
+Open `/creative` for the command list. Use `/video` for cut plans, `/copyedit`
+to revise text, `/brand` for identity systems, and `/storyboard` for shot lists.
+Add your brief after the command. Photo and video modes produce editing
+instructions for use on your own media.
+
+Open `/plugins` for Canva and tldraw shortcuts. These buttons open the tools in a
+browser, where you can paste the brief or storyboard from Telegram.
 
 ## Run the full-stack web app locally
 

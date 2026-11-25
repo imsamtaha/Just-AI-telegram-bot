@@ -56,7 +56,9 @@ async def send_message(
 def is_atlas_command(text: str) -> bool:
     """Recognize /atlas, including Telegram's /atlas@botname group syntax."""
     command = text.strip().split(maxsplit=1)[0].split("@", maxsplit=1)[0].lower() if text.strip() else ""
-    return command == "/atlas"
+    return command == "/atlas" or text.strip().casefold() in {
+        "atlas dashboard", "open atlas dashboard", "open atlas",
+    }
 
 
 async def handle_update(session: aiohttp.ClientSession, config: BotConfig, update: dict[str, Any], memory: Memory | None = None) -> None:
@@ -87,8 +89,27 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
             session,
             config,
             chat_id,
-            "Open the ATLAS dashboard. Its existing sign-in and access requirements still apply; this bot does not retrieve or expose dashboard or account data.",
+            "ATLAS Intelligence\n\nOpen the dashboard below or use these commands here:\n"
+            "/creative — browse creative and editing skills\n"
+            "/plugins — open Canva or tldraw\n"
+            "/followups — view your reminders in private chat",
             reply_markup={"inline_keyboard": [[{"text": ATLAS_DASHBOARD_LABEL, "url": config.atlas_dashboard_url}]]},
+        )
+        return
+
+    if command == "/plugins":
+        await send_message(
+            session,
+            config,
+            chat_id,
+            "Creative tools\n\n"
+            "Canva — design, presentations, and social graphics\n"
+            "tldraw — storyboards, brainstorming, and diagrams\n\n"
+            "Use /creative to draft a brief here, then open a tool to work on it.",
+            reply_markup={"inline_keyboard": [[
+                {"text": "Canva", "url": "https://www.canva.com/"},
+                {"text": "tldraw", "url": "https://www.tldraw.com/"},
+            ]]},
         )
         return
 

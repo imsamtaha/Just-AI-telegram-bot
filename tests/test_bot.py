@@ -113,7 +113,7 @@ def test_send_message_splits_telegram_payload():
     assert session.response.status_checked
 
 
-@pytest.mark.parametrize("command", ["/atlas", "/start atlas"])
+@pytest.mark.parametrize("command", ["/atlas", "/start atlas", "Atlas dashboard", "Open Atlas dashboard"])
 def test_atlas_command_sends_dashboard_link_without_openai(command):
     session = FakeSession()
     config = BotConfig(
@@ -127,7 +127,9 @@ def test_atlas_command_sends_dashboard_link_without_openai(command):
     asyncio.run(handle_update(session, config, {"message": {"chat": {"id": 123}, "text": command}}))
 
     assert session.payload["chat_id"] == 123
-    assert "sign-in and access requirements" in session.payload["text"]
+    assert "ATLAS Intelligence" in session.payload["text"]
+    assert "sign in" not in session.payload["text"].lower()
+    assert "sign-in" not in session.payload["text"].lower()
     assert session.payload["reply_markup"] == {
         "inline_keyboard": [[{"text": "Open ATLAS dashboard", "url": DEFAULT_ATLAS_DASHBOARD_URL}]]
     }
@@ -193,3 +195,27 @@ def test_create_openai_response_builds_responses_payload():
         "instructions": "Be helpful",
         "input": "Hello",
     }
+
+
+@pytest.mark.parametrize("command", ["/start", "/help", "/creative"])
+def test_telegram_help_lists_creative_tools_without_openai(command):
+    session = FakeSession()
+    config = BotConfig("openai-key", "example-model", "Be helpful", "telegram-token", 30)
+    update = {"message": {"chat": {"id": 123, "type": "private"}, "text": command}}
+
+    asyncio.run(handle_update(session, config, update))
+
+    for option in ("/video", "/copyedit", "/brand", "/storyboard", "/plugins"):
+        assert option in session.payload["text"]
+
+
+def test_plugins_menu_links_to_requested_tools_without_openai():
+    session = FakeSession()
+    config = BotConfig("openai-key", "example-model", "Be helpful", "telegram-token", 30)
+    update = {"message": {"chat": {"id": 123}, "text": "/plugins@JustAIBot"}}
+
+    asyncio.run(handle_update(session, config, update))
+
+    buttons = session.payload["reply_markup"]["inline_keyboard"]
+    assert buttons == [[{"text": "Canva", "url": "https://www.canva.com/"},
+                        {"text": "tldraw", "url": "https://www.tldraw.com/"}]]
