@@ -18,6 +18,35 @@ LANGUAGE_BUTTONS = {
     "one_time_keyboard": True,
 }
 
+PRIVATE_COMMANDS = (
+    ("start", "Start and choose your language", "بلّش واختار اللغة"),
+    ("help", "Browse the commands", "شوف الأوامر"),
+    ("ar", "Switch to Lebanese Arabic", "حوّل عاللبناني"),
+    ("en", "Switch to English", "حوّل عالإنجليزي"),
+    ("atlas", "Open the ATLAS dashboard", "افتح لوحة ATLAS"),
+    ("coding", "Get coding help", "مساعدة بالبرمجة"),
+    ("personal", "Get personal assistance", "رتّب مهامّك"),
+    ("creative", "Browse creative modes", "شوف أدوات الإبداع"),
+    ("designer", "Plan visual direction", "خطّط للتصميم"),
+    ("creator", "Brainstorm ideas", "طلّع أفكار"),
+    ("graphic", "Plan graphics and layouts", "خطّط للغرافيك"),
+    ("photo", "Plan photo edits", "خطّط لتعديل الصور"),
+    ("video", "Plan video edits", "خطّط للمونتاج"),
+    ("copyedit", "Edit a draft", "عدّل النص"),
+    ("brand", "Plan a brand identity", "اشتغل عالهويّة"),
+    ("storyboard", "Plan a storyboard", "رتّب المشاهد"),
+    ("skills", "List your saved skills", "شوف مهاراتك"),
+    ("addskill", "Save a skill", "ضيف مهارة"),
+    ("skill", "Use a saved skill", "استعمل مهارة"),
+    ("delskill", "Delete a saved skill", "امحي مهارة"),
+    ("remember", "Save a note", "احفظ ملاحظة"),
+    ("memory", "List saved notes", "شوف ملاحظاتك"),
+    ("forget", "Clear notes and recent chat context", "امحي الملاحظات وآخر المحادثة"),
+    ("followup", "Set a reminder", "حطّ تذكير"),
+    ("followups", "List reminders", "شوف تذكيراتك"),
+    ("cancel", "Cancel a reminder", "الغي تذكير"),
+)
+
 STYLE = (
     "For Arabic replies, write natural Lebanese colloquial chat, e.g. يا هلا، شو بدّك، "
     "فيك، هيك، خلّينا. Avoid formal Modern Standard Arabic for everyday chat. "

@@ -13,7 +13,7 @@ import aiohttp
 from config import BotConfig, load_bot_config
 from creative_modes import build_creative_prompt, creative_help, parse_creative_command
 from openai_client import create_openai_response
-from telegram_language import ALIASES, LANGUAGE_BUTTONS, LEBANESE_HELP, STYLE
+from telegram_language import ALIASES, LANGUAGE_BUTTONS, LEBANESE_HELP, PRIVATE_COMMANDS, STYLE
 from claude_client import create_claude_response
 
 
@@ -71,6 +71,27 @@ async def send_message(
             response.raise_for_status()
 
 
+async def register_private_commands(session: aiohttp.ClientSession, config: BotConfig) -> None:
+    for language, index in (("", 1), ("ar", 2)):
+        payload: dict[str, Any] = {
+            "scope": {"type": "all_private_chats"},
+            "commands": [{"command": row[0], "description": row[index]} for row in PRIVATE_COMMANDS],
+        }
+        if language:
+            payload["language_code"] = language
+        try:
+            async with session.post(
+                f"{config.telegram_api_base}/setMyCommands",
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as response:
+                response.raise_for_status()
+                if not (await response.json()).get("ok"):
+                    LOGGER.warning("Telegram did not accept the private command menu")
+        except Exception:
+            LOGGER.warning("Telegram command menu could not be registered")
+
+
 def is_atlas_command(text: str) -> bool:
     """Recognize /atlas, including Telegram's /atlas@botname group syntax."""
     command = text.strip().split(maxsplit=1)[0].split("@", maxsplit=1)[0].lower() if text.strip() else ""
@@ -94,15 +115,33 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
     command, *arguments = user_text.split(maxsplit=1)
     command = command.split("@", maxsplit=1)[0].lower()
     command = ALIASES.get(command.removeprefix("/"), command)
+    argument = arguments[0] if arguments else ""
+    first_contact = private and memory is not None and not memory.has_seen_welcome(owner)
     if command in {"/ar", "/en"}:
         if private and memory:
             memory.set_preferred_language(owner, command == "/ar")
         reply = LEBANESE_HELP if command == "/ar" else "English selected. Send /help for commands or /ar for Lebanese Arabic."
-        await send_message(session, config, chat_id, reply)
+        await send_message(session, config, chat_id, reply, LANGUAGE_BUTTONS if first_contact else None)
+        if first_contact:
+            memory.mark_welcome_seen(owner)
         return
+
     preference = memory.preferred_language(owner) if private and memory else None
     lebanese = preference is True or (preference is None and any("\u0600" <= c <= "\u06ff" for c in user_text))
-    argument = arguments[0] if arguments else ""
+    dashboard_start = command == "/start" and argument == "atlas"
+    if first_contact and command != "/start":
+        try:
+            await send_message(
+                session, config, chat_id,
+                "يا هلا بـJUST ATLAS! اختار لبناني أو English من تحت." if lebanese else
+                "Welcome to JUST ATLAS! Choose Lebanese Arabic or English below.",
+                LANGUAGE_BUTTONS,
+            )
+        except Exception:
+            LOGGER.warning("Telegram welcome could not be sent")
+        else:
+            memory.mark_welcome_seen(owner)
+
     memory_commands = {"/remember", "/memory", "/forget", "/followup", "/followups", "/cancel"}
     if command in memory_commands:
         if not private or memory is None:
@@ -112,7 +151,7 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
         await send_message(session, config, chat_id, reply)
         return
 
-    if command == "/atlas" or is_atlas_command(user_text) or (command == "/start" and argument.strip() == "atlas"):
+    if command == "/atlas" or is_atlas_command(user_text) or dashboard_start:
         await send_message(
             session,
             config,
@@ -139,6 +178,8 @@ async def handle_update(session: aiohttp.ClientSession, config: BotConfig, updat
             + "\nPrivate chats keep six recent turns. Saved notes and chat context go to the AI provider."
         )
         await send_message(session, config, chat_id, help_text, LANGUAGE_BUTTONS if command == "/start" else None)
+        if first_contact:
+            memory.mark_welcome_seen(owner)
         return
 
     system_prompt = config.system_prompt
@@ -285,6 +326,7 @@ async def followup_worker(session, config, memory):
 
 async def poll_updates(config: BotConfig, memory: Memory | None = None) -> None:
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90)) as session:
+        await register_private_commands(session, config)
         worker = asyncio.create_task(followup_worker(session, config, memory)) if memory else None
         try:
             await polling_loop(session, config, memory)
