@@ -30,6 +30,14 @@ to revise text, `/brand` for identity systems, and `/storyboard` for shot lists.
 Add your brief after the command. Photo and video modes produce editing
 instructions for use on your own media.
 
+### Starting a Telegram chat
+
+Telegram shows its native **Start** button in a new bot chat. JUST ATLAS also
+registers `/start` first in the private command menu. If you send a message
+before using Start, the bot shows the language choices on that first private
+interaction and still handles the message. Opening a chat alone does not
+deliver an update to a Telegram bot.
+
 ### Lebanese Arabic
 
 Send `/start` and choose **لبناني** or **English**. You can also switch using

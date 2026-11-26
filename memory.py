@@ -104,6 +104,16 @@ class Memory:
                             "status=CASE WHEN attempts>=4 THEN 'failed' ELSE 'pending' END WHERE id=?",
                             ((time.time() if now is None else now) + 60, reminder_id))
 
+    def has_seen_welcome(self, owner):
+        return self.db.execute(
+            'SELECT 1 FROM state WHERE key=?', (f'welcome:{owner}',)
+        ).fetchone() is not None
+
+    def mark_welcome_seen(self, owner):
+        with self.db:
+            self.db.execute('INSERT OR IGNORE INTO state(key,value) VALUES(?,1)',
+                            (f'welcome:{owner}',))
+
     def preferred_language(self, owner):
         row = self.db.execute('SELECT value FROM state WHERE key=?', (f'language:{owner}',)).fetchone()
         return bool(row[0]) if row else None

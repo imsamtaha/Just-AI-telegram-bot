@@ -35,6 +35,9 @@ class FakeResponse:
     async def __aexit__(self, exc_type, exc, traceback):
         return False
 
+    async def json(self):
+        return {"ok": True}
+
     def raise_for_status(self) -> None:
         self.status_checked = True
 
@@ -46,7 +49,7 @@ class FakeSession:
         self.url = None
         self.response = FakeResponse()
 
-    def post(self, url, json):
+    def post(self, url, json, **kwargs):
         self.url = url
         self.payload = json
         self.payloads.append(json)
@@ -294,3 +297,54 @@ def test_bilingual_assistance_modes(monkeypatch, command, focus):
     assert "Arabic" in model.call_args.args[3]
     assert model.call_args.args[2] == command.split(maxsplit=1)[1]
 
+
+
+@pytest.mark.parametrize("first_message", ["kifak", "/start", "/ar"])
+def test_private_welcome_only_once_after_restart(tmp_path, monkeypatch, first_message):
+    from unittest.mock import AsyncMock
+    from memory import Memory
+
+    config = BotConfig("key", "model", "Base", "token", 30)
+    session = FakeSession()
+    provider = AsyncMock(return_value="AI reply")
+    monkeypatch.setattr("bot.call_openai", provider)
+    path = tmp_path / "bot.sqlite3"
+
+    def send(text, chat_type="private"):
+        message = {"chat": {"id": 123, "type": chat_type}, "text": text}
+        asyncio.run(handle_update(session, config, {"message": message}, memory))
+
+    memory = Memory(path)
+    send(first_message)
+    assert sum("keyboard" in payload.get("reply_markup", {}) for payload in session.payloads) == 1
+    assert len(session.payloads) == (2 if first_message == "kifak" else 1)
+    if first_message == "kifak":
+        assert session.payloads[-1]["text"] == "AI reply"
+
+    memory.close()
+    memory = Memory(path)
+    session.payloads.clear()
+    send("kifak")
+    assert [payload["text"] for payload in session.payloads] == ["AI reply"]
+    session.payloads.clear()
+    send("kifak", "group")
+    assert [payload["text"] for payload in session.payloads] == ["AI reply"]
+    memory.close()
+
+
+def test_register_start_as_first_private_command_in_both_languages():
+    from bot import register_private_commands
+
+    session = FakeSession()
+    config = BotConfig("key", "model", "Base", "token", 30)
+    asyncio.run(register_private_commands(session, config))
+
+    assert session.url.endswith("/setMyCommands")
+    assert len(session.payloads) == 2
+    assert session.payloads[0].get("language_code") is None
+    assert session.payloads[1]["language_code"] == "ar"
+    assert session.response.status_checked
+    for payload in session.payloads:
+        assert payload["scope"] == {"type": "all_private_chats"}
+        assert payload["commands"][0]["command"] == "start"
+        assert "plugins" not in {row["command"] for row in payload["commands"]}
