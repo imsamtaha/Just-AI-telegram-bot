@@ -163,3 +163,37 @@ To update an existing cloud deployment, copy **both** `cloud/tgcloud/lib/arabic.
 and `cloud/tgcloud/lib/core.js` into `~/JustAI_chatbot/tgcloud/lib/`, then run
 `npx tgcloud push` in that project. Requires the previously deployed Trader skill
 pack modules. No credential or schema change is needed.
+
+## Current ATLAS link
+
+`/atlas` and `/اطلس` default to `https://justai-atlas.online/`, the homepage
+currently set on `imsamtaha/Trading-ai`. This replaces the older ChatGPT Sites
+address. It opens a link; no account data or access permissions are transferred.
+The homepage and `/dashboard` returned HTTP 403 from the development workspace,
+so live dashboard availability could not be confirmed.
+
+Existing deployed configuration without `atlasDashboardUrl` uses the new default
+as soon as the updated `core.js` is pushed. To override the destination, set
+`ATLAS_DASHBOARD_URL` in the cloud project's `.env`, update `scripts/configure.mjs`
+from this repository, rerun `npm run justai:configure`, and push. Configuration
+requires HTTPS with no embedded credentials. The Python bot uses the same new
+default; an existing environment override still takes precedence.
+
+## Consumer private login
+
+Customers now log in inside `@JustAI_chatbot` using its Telegram login button or
+`/login` (`/دخول`). Private sessions expire after 30 days; `/logout` (`/خروج`)
+revokes them. Groups direct customers to the bot's private chat. See
+[consumer-login.md](docs/consumer-login.md) for the customer flow, privacy details,
+new `justai_sessions` migration, and deployment instructions. This does not link
+Google accounts or enforce paid subscriptions. Existing customers must log in.
+
+## ATLAS Special Edition
+
+Authenticated `/start` now opens a bilingual personal home with market desk,
+AI briefing, trading skills, creative studio, private workspace counts and ATLAS
+shortcuts. `/home` (`/الرئيسية`), `/studio` (`/استوديو`), `/workspace` (`/مساحتي`),
+`/desk BTC-USD 1h` and `/brief BTC-USD 1h` are available.
+See [special-edition.md](docs/special-edition.md) for capabilities, data/AI limits
+and deployment instructions. Existing private login and schema are prerequisites;
+this edition adds no new database fields or paid-subscription claims.

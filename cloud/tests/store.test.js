@@ -4,7 +4,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { createStore } from '../tgcloud/lib/store.js';
 function database(){
   const db=new DatabaseSync(':memory:');
-  db.exec(`CREATE TABLE justai_locks(owner TEXT PRIMARY KEY, token TEXT NOT NULL,until_time INTEGER NOT NULL);
+  db.exec(`CREATE TABLE justai_sessions(owner TEXT PRIMARY KEY,created INTEGER NOT NULL,expires INTEGER NOT NULL);
+    CREATE TABLE justai_locks(owner TEXT PRIMARY KEY, token TEXT NOT NULL,until_time INTEGER NOT NULL);
     CREATE TABLE justai_turns(id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,user_text TEXT,assistant_text TEXT);
     CREATE TABLE justai_notes(id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,content TEXT);
     CREATE TABLE justai_reminders(id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,content TEXT,due INTEGER,status TEXT);
@@ -37,5 +38,16 @@ test('real SQLite reminder claims, non-reused IDs, owner cancellation',async()=>
     await s.failed('1',id);assert.equal((await s.reminders('1'))[0].status,'uncertain');
     await s.complete('1',id);const second=await s.schedule('1','again',120000);assert.ok(second>id);
     await s.complete('1',id);assert.equal((await s.reminders('1')).length,1);
+  }finally{db.close();}
+});
+
+test('real SQLite bot sessions are isolated, renewed and revoked independently of memory',async()=>{
+  const {db,store:s}=database();try{
+    assert.equal(await s.session('1'),undefined);
+    await s.login('1',10,100);assert.equal((await s.session('1')).expires,100);
+    assert.equal(await s.session('2'),undefined);
+    await s.login('1',20,200);assert.equal((await s.session('1')).created,20);
+    await s.note('1','keep this');await s.logout('1');assert.equal(await s.session('1'),undefined);
+    assert.deepEqual((await s.context('1')).notes,['keep this']);
   }finally{db.close();}
 });

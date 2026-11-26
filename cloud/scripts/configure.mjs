@@ -21,7 +21,12 @@ const prefix = provider === 'claude' ? 'ANTHROPIC' : 'OPENAI';
 const apiKey = values[`${prefix}_API_KEY`];
 const model = values[`${prefix}_MODEL`];
 if (!apiKey || !model || /YOUR_|replace_me/.test(apiKey)) throw new Error('Set a real API key and model in .env');
-const config = { provider, apiKey, model, systemPrompt: values.BOT_SYSTEM_PROMPT || "You are Just AI. Reply in the user's language. Never invent prices, actions, or completed trades." };
+const atlasDashboardUrl = values.ATLAS_DASHBOARD_URL || 'https://justai-atlas.online/';
+const dashboardUrl = new URL(atlasDashboardUrl);
+if (dashboardUrl.protocol !== 'https:' || dashboardUrl.username || dashboardUrl.password) {
+  throw new Error('ATLAS_DASHBOARD_URL must be an HTTPS URL without credentials');
+}
+const config = { provider, apiKey, model, atlasDashboardUrl, systemPrompt: values.BOT_SYSTEM_PROMPT || "You are Just AI. Reply in the user's language. Never invent prices, actions, or completed trades." };
 writeFileSync('tgcloud/lib/private_config.js', `// Generated locally. Do not commit. Server-side only.\nexport default ${JSON.stringify(config)};\n`, {mode:0o600});
 chmodSync('tgcloud/lib/private_config.js', 0o600);
 console.log('Server-side configuration generated; credentials were not printed.');

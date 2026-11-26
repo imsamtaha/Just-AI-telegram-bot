@@ -1,3 +1,5 @@
+import { editionPanel, marketSnapshot, BRIEF_INSTRUCTION, briefKeyboard } from './edition.js';
+import { requirePrivateLogin } from './access.js';
 import { parseCommand, toolArgument, arabicHelp, arabicReminderNotice } from './arabic.js';
 import { skills, aliases } from './skills.js';
 import { traderHelp } from './trader_skills.js';
@@ -5,11 +7,11 @@ import { answer, AIError } from './ai.js';
 import { runTool, toolCommands, toolHelp } from './tools.js';
 export async function send(api, chatId, text, extra={}) {
   let chunk='';
-  for(const c of text){if(chunk.length+c.length>4096){await api.sendMessage({chat_id:chatId,text:chunk,...extra});chunk='';}chunk+=c;}
+  for(const c of text){if(chunk.length+c.length>4096){await api.sendMessage({chat_id:chatId,text:chunk});chunk='';}chunk+=c;}
   if(chunk)await api.sendMessage({chat_id:chatId,text:chunk,...extra});
 }
 const reminderNotice='Cloud reminders are checked when you next message this bot, not at an unattended scheduled time.';
-const help='/trader — imported trader skill pack\n/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
+const help='/home — ATLAS Special Edition\n/desk BTC-USD 1h — sourced market snapshot\n/brief BTC-USD 1h — AI explanation of snapshot\n/workspace — private workspace\n/studio — creative skills\n/login — log in privately\n/logout — end bot session\n/privacy — data privacy\n/trader — imported trader skill pack\n/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
 export function createHandler({api,store,fetch,config,now=Date.now}) {
   return async function(message,ctx={}){
     if(typeof message.text!=='string'||!message.text.trim()||!message.chat?.id)return;
@@ -27,6 +29,9 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
       const {command,arabic}=parseCommand(raw);
       const argument=toolArgument(command,originalArgument);
       const local=(en,ar)=>arabic?ar:en;
+      if(!await requirePrivateLogin({message,command,arabic,api,store,now:now()})){
+        await store.mark(id,owner);return;
+      }
       const privateChat=message.chat.type==='private';
       if(privateChat){
         for(const r of await store.reminders(owner)){
@@ -35,13 +40,41 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
           catch {await store.failed(owner,r.id);}
         }
       }
-      let reply;
-      if(['/start','/help','/creative'].includes(command))reply=arabic?arabicHelp():help+'\n/مساعدة — الأوامر بالعربي';
+      let reply,replyMarkup;
+      if(['/start','/home','/edition','/studio','/workspace'].includes(command)){
+        const kind=command==='/studio'?'studio':command==='/workspace'?'workspace':'home';
+        const counts=kind==='workspace'?{notes:(await store.context(owner)).notes.length,
+          followups:(await store.reminders(owner)).filter(r=>r.status==='pending').length}:{};
+        const panel=editionPanel(kind,arabic,{...counts,name:typeof message.from.first_name==='string'?message.from.first_name.slice(0,40):''});
+        reply=panel.text;replyMarkup=panel.reply_markup;
+      }
+      else if(['/desk','/brief'].includes(command)){
+        try{await api.sendChatAction({chat_id:chatId,action:'typing'});}catch{}
+        const snapshot=await marketSnapshot(argument,fetch,now(),arabic);
+        reply=snapshot.text;replyMarkup=briefKeyboard(arabic);
+        if(command==='/brief'&&snapshot.ok){
+          const context=await store.context(owner);
+          try{await api.sendChatAction({chat_id:chatId,action:'typing'});}catch{}
+          try{
+            const briefing=await answer(fetch,arabic?{...config,systemPrompt:config.systemPrompt+'\nReply in Lebanese Arabic.'}:config,
+              [],context.notes,BRIEF_INSTRUCTION,snapshot.text);
+            reply=snapshot.text+'\n\n'+briefing;
+            try{await store.turn(owner,text,reply);}catch{console.warn('Briefing could not be saved');}
+          }catch{
+            reply+='\n\n'+(arabic?'تفسير AI مش متاح هلّق. بيانات المصدر فوق بعدها معروضة.':'AI interpretation is unavailable. The sourced snapshot is shown above.');
+          }
+        }
+      }
+      else if(aliases[command]&&!argument){
+        reply=arabic?'اختَرت '+skills[aliases[command]].name+'. ابعت '+raw+' ومعه طلبك أو النص والبيانات اللي بدّك نحلّلها. رح نسألك بس عن التفاصيل الضرورية.':
+          'Selected: '+skills[aliases[command]].name+'. Send '+raw+' followed by your request or source text/data. I will ask only for essential missing details.';
+      }
+      else if(['/help','/creative'].includes(command))reply=arabic?arabicHelp():help+'\n/مساعدة — الأوامر بالعربي';
       else if(command==='/trader')reply=arabic?arabicHelp('trader'):traderHelp();
       else if(command==='/skills')reply=arabic?arabicHelp('skills'):Object.entries(skills).map(([k,v])=>`/${k} — ${v.name}`).join('\n');
       else if(['/plugins','/tradingtools'].includes(command))reply=arabic?arabicHelp('tools'):toolHelp;
       else if(command==='/atlas'){
-        await send(api,chatId,local('Open the ATLAS dashboard. Its own sign-in requirements apply.','فيك تفتح لوحة ATLAS من هالزر. تسجيل الدخول والصلاحيات تبعها بيضلّوا مطلوبين.'),{reply_markup:{inline_keyboard:[[{text:local('Open ATLAS dashboard','افتح لوحة ATLAS'),url:'https://atlas-market.imsamtaha.chatgpt.site'}]]}});
+        await send(api,chatId,local('Open the ATLAS dashboard. Its own sign-in requirements apply.','فيك تفتح لوحة ATLAS من هالزر. تسجيل الدخول والصلاحيات تبعها بيضلّوا مطلوبين.'),{reply_markup:{inline_keyboard:[[{text:local('Open ATLAS dashboard','افتح لوحة ATLAS'),url:config.atlasDashboardUrl||'https://justai-atlas.online/'}]]}});
         await store.mark(id,owner);return;
       }
       else if(toolCommands.has(command))reply=await runTool(command,argument,fetch,now());
@@ -70,7 +103,7 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
           reply=error instanceof AIError?`AI service returned HTTP ${error.status}. ${error.status===401?'Replace the API key using local cloud configuration.':'Check model, account access, credits and service availability.'}`:'AI service is temporarily unreachable. Try again later.';
         }
       }
-      await send(api,chatId,reply);
+      await send(api,chatId,reply,replyMarkup?{reply_markup:replyMarkup}:{});
       await store.mark(id,owner);
     }finally{await store.unlock(owner,token);}
   };
