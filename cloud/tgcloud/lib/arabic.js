@@ -37,8 +37,9 @@ const commands = [
 export function normalizeCommand(text){
   return text.split('@')[0].normalize('NFC').toLowerCase().replace(/[\u064b-\u065f\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا');
 }
-export const arabicAliases = Object.fromEntries(commands.map(([ar,en])=>[normalizeCommand('/'+ar),'/'+en]));
-Object.assign(arabicAliases,{'/تذكر':'/remember','/تذكير':'/followup','/الذاكرة':'/memory','/اوامر':'/help'});
+const loginCommands=[['الرئيسية','home','مساحتك بالنسخة الخاصة'],['مكتب_السوق','desk','لقطة سعر ومؤشرات: /مكتب_السوق BTC-USD 1h'],['موجز','brief','تفسير AI لبيانات السوق'],['مساحتي','workspace','ملخّص ملاحظاتك ومتابعاتك'],['استوديو','studio','مهارات الإبداع'],['دخول','login','سجّل دخولك بحساب تلغرام'],['خروج','logout','أنهي جلسة البوت'],['خصوصية','privacy','كيف بتنحفظ بياناتك']];
+export const arabicAliases = Object.fromEntries([...commands,...loginCommands].map(([ar,en])=>[normalizeCommand('/'+ar),'/'+en]));
+Object.assign(arabicAliases,{'/الرئيسية':'/home','/نسخة_خاصة':'/edition','/استوديو':'/studio','/مساحتي':'/workspace','/مكتب_السوق':'/desk','/موجز':'/brief','/تذكر':'/remember','/تذكير':'/followup','/الذاكرة':'/memory','/اوامر':'/help'});
 export function parseCommand(raw){
   const normalized=normalizeCommand(raw);
   return {command:arabicAliases[normalized]||normalized,arabic:/[\u0600-\u06ff]/.test(raw.split('@')[0])};
@@ -48,7 +49,7 @@ export function numbers(text){
 }
 export function toolArgument(command,text){
   if(['/calc','/size','/rr','/cancel'].includes(command))return numbers(text);
-  if(command==='/technical')return text.replace(/(\S+)\s+(\S+)$/,(_,pair,interval)=>pair+' '+numbers(interval).replace(/د$/,'m').replace(/س$/,'h').replace(/ي$/,'d'));
+  if(['/technical','/desk','/brief'].includes(command))return text.replace(/(\S+)\s+(\S+)$/,(_,pair,interval)=>pair+' '+numbers(interval).replace(/د$/,'m').replace(/س$/,'h').replace(/ي$/,'d'));
   if(command==='/followup')return text.replace(/^(\S+)(?=\s)/,delay=>numbers(delay).replace(/د$/,'m').replace(/س$/,'h').replace(/ي$/,'d'));
   return text;
 }
@@ -57,7 +58,7 @@ export function arabicHelp(group='help'){
   if(group==='trader')subset=commands.filter(([,en])=>en.startsWith('trader_'));
   else if(group==='skills')subset=commands.slice(20);
   else if(group==='tools')subset=commands.slice(13,20);
-  else subset=commands.slice(0,20);
+  else subset=[...loginCommands,...commands.slice(0,20)];
   return 'فيك تكتب هالأوامر بالعربي أو تستعمل مقابلها بالإنكليزي:\n'+
     subset.map(([ar,en,desc])=>`/${ar} — /${en}\n${desc}`).join('\n')+
     '\n\nبالتذكير: د=دقيقة، س=ساعة، ي=يوم. المتابعات بتنراجع بس وقت تبعت رسالة جديدة، مش تلقائياً وإنت غايب.'+

@@ -1,4 +1,10 @@
 export function createStore(db) { return {
+  async session(owner) { return await db.get('SELECT owner,created,expires FROM justai_sessions WHERE owner=:o', {':o':owner}); },
+  async login(owner, created, expires) {
+    await db.run(`INSERT INTO justai_sessions(owner,created,expires) VALUES(:o,:c,:e)
+      ON CONFLICT(owner) DO UPDATE SET created=:c,expires=:e`, {':o':owner, ':c':created, ':e':expires});
+  },
+  async logout(owner) { await db.run('DELETE FROM justai_sessions WHERE owner=:o', {':o':owner}); },
   async lock(owner, token, now) {
     const result = await db.run(`INSERT INTO justai_locks(owner,token,until_time) VALUES(:o,:t,:n)
       ON CONFLICT(owner) DO UPDATE SET token=:t,until_time=:n WHERE until_time<:now`,

@@ -8,6 +8,7 @@ function harness(){
   const sent=[],actions=[],contexts=new Map(),reminders=[],seen=new Set();let held=false,id=0;
   const get=o=>{if(!contexts.has(o))contexts.set(o,{notes:[],history:[]});return contexts.get(o);};
   const store={
+    session:async()=>({expires:Number.MAX_SAFE_INTEGER}),login:async()=>{},logout:async()=>{},
     seen:async id=>seen.has(id),mark:async id=>seen.add(id),lock:async()=>{if(held)return false;held=true;return true;},unlock:async()=>{held=false;},
     context:async o=>get(o),note:async(o,n)=>get(o).notes.push(n),forget:async o=>contexts.delete(o),
     turn:async(o,u,a)=>get(o).history.push({role:'user',content:u},{role:'assistant',content:a}),
@@ -23,7 +24,7 @@ function harness(){
   const fetch=async(url,init)=>{request=JSON.parse(init.body);return {ok:true,json:async()=>({content:[{type:'text',text:'AI reply'}]})};};
   const handler=createHandler({api,store,fetch,config,now:()=>clock});
   let messageId=0;
-  const message=(text,owner=1,type='private',mid=++messageId)=>handler({message_id:mid,chat:{id:owner,type},text});
+  const message=(text,owner=1,type='private',mid=++messageId)=>handler({message_id:mid,from:{id:owner},chat:{id:owner,type},text});
   return {sent,actions,store,contexts,reminders,config,fetch,message,api,setClock:n=>{clock=n;},request:()=>request};
 }
 test('bounded arithmetic without eval',()=>{
@@ -45,7 +46,7 @@ test('memory scopes, skills, and clearing',async()=>{
   assert.deepEqual(h.request().messages.slice(0,2),[{role:'user',content:'Hello'},{role:'assistant',content:'AI reply'}]);
   assert.match(h.request().system,/Arabic/);
   await h.message('/memory',2);assert.match(h.sent.at(-1).text,/No saved/);
-  await h.message('/memory',1,'group');assert.match(h.sent.at(-1).text,/private-chat/);
+  await h.message('/memory',1,'group');assert.match(h.sent.at(-1).text,/privately/);
   await h.message('/forget');assert.equal(h.contexts.has('1'),false);
 });
 test('utility commands work without AI',async()=>{

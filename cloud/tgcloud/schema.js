@@ -16,3 +16,7 @@ export const locks = table('justai_locks', {
 export const processed = table('justai_processed', {
   id: text('id').primaryKey(), owner: text('owner').notNull(),
 });
+
+export const sessions = table('justai_sessions', {
+  owner: text('owner').primaryKey(), created: integer('created').notNull(), expires: integer('expires').notNull(),
+});
