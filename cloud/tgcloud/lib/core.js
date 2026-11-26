@@ -1,4 +1,5 @@
 import { skills, aliases } from './skills.js';
+import { traderHelp } from './trader_skills.js';
 import { answer, AIError } from './ai.js';
 import { runTool, toolCommands, toolHelp } from './tools.js';
 export async function send(api, chatId, text, extra={}) {
@@ -7,7 +8,7 @@ export async function send(api, chatId, text, extra={}) {
   if(chunk)await api.sendMessage({chat_id:chatId,text:chunk,...extra});
 }
 const reminderNotice='Cloud reminders are checked when you next message this bot, not at an unattended scheduled time.';
-const help='/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
+const help='/trader — imported trader skill pack\n/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
 export function createHandler({api,store,fetch,config,now=Date.now}) {
   return async function(message,ctx={}){
     if(typeof message.text!=='string'||!message.text.trim()||!message.chat?.id)return;
@@ -33,6 +34,7 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
       }
       let reply;
       if(['/start','/help','/creative'].includes(command))reply=help;
+      else if(command==='/trader')reply=traderHelp();
       else if(command==='/skills')reply=Object.entries(skills).map(([k,v])=>`/${k} — ${v.name}`).join('\n');
       else if(['/plugins','/tradingtools'].includes(command))reply=toolHelp;
       else if(command==='/atlas'){

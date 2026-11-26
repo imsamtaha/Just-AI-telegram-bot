@@ -122,3 +122,20 @@ SQLite integration tests use `node:sqlite`. CLI deployment itself supports Node
 leases, reminder claims, AI payloads, deduplication, arithmetic, indicators and
 failure handling. They do not substitute for `push`, `migrate` and a real message
 on tgcloud. No live AI/Telegram credentials are needed for tests.
+
+## Arabic reply style
+
+AI replies default to natural Lebanese Arabic whenever answering in Arabic,
+including skill commands. English replies stay English. Explicit translation,
+formal-Arabic, and dialect requests take precedence. The instruction is appended
+at request time, so existing local API configuration need not be regenerated.
+To deploy this small update, replace only `tgcloud/lib/ai.js` from this project
+in the existing cloud app, then run `npx tgcloud push` there.
+
+## Imported Trader skill pack
+
+`/trader` lists all eleven adapted analysis modes from Jake Schincariol's
+MIT-licensed Trader skill pack. Original hyphenated commands and Telegram-friendly
+underscore names are supported. See [the adaptation and update guide](docs/trader-skill-adaptation.md)
+for capabilities, source attribution, and deployment steps. The Python tools,
+SEC/news feeds, unattended alerts and brokerage connectors are not installed.
