@@ -53,7 +53,7 @@ export function toolArgument(command,text){
   if(command==='/followup')return text.replace(/^(\S+)(?=\s)/,delay=>numbers(delay).replace(/د$/,'m').replace(/س$/,'h').replace(/ي$/,'d'));
   return text;
 }
-export function arabicHelp(group='help'){
+export function arabicHelp(group='help',automaticReminders=false){
   let subset=commands;
   if(group==='trader')subset=commands.filter(([,en])=>en.startsWith('trader_'));
   else if(group==='skills')subset=commands.slice(20);
@@ -61,7 +61,7 @@ export function arabicHelp(group='help'){
   else subset=[...loginCommands,...commands.slice(0,20)];
   return 'فيك تكتب هالأوامر بالعربي أو تستعمل مقابلها بالإنكليزي:\n'+
     subset.map(([ar,en,desc])=>`/${ar} — /${en}\n${desc}`).join('\n')+
-    '\n\nبالتذكير: د=دقيقة، س=ساعة، ي=يوم. المتابعات بتنراجع بس وقت تبعت رسالة جديدة، مش تلقائياً وإنت غايب.'+
+    (automaticReminders?'\n\nبالتذكير: د=دقيقة، س=ساعة، ي=يوم. التذكير تلقائي والخدمة شغّالة؛ الجلسة لازم تبقى مسجّلة دخول.':'\n\nبالتذكير: د=دقيقة، س=ساعة، ي=يوم. المتابعات بتنراجع بس وقت تبعت رسالة جديدة، مش تلقائياً وإنت غايب.')+
     '\nالذاكرة للخاص وبتنحفظ بالسحابة؛ سياق الحديث بينبعت لمزوّد الذكاء الاصطناعي. مهارات المتداول بتحلّل النص اللي بتعطيها ياه، بلا جلب أخبار/ملفات أو تنفيذ صفقات.';
 }
 export const arabicReminderNotice='المتابعة محفوظة، بس رح نتفقّدها وقت تبعت رسالة جديدة للبوت؛ ما في إرسال تلقائي بموعد محدّد وإنت غايب.';

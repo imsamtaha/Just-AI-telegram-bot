@@ -8,3 +8,8 @@ data
 *.sqlite3*
 *.db
 *.log
+**/.env
+**/.env.*
+**/.tgcloud
+**/private_config.js
+**/node_modules

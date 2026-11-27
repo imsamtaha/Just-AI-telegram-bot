@@ -1,0 +1,26 @@
+services:
+  bot:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    init: true
+    env_file:
+      - ${JUSTAI_ENV_FILE:-/etc/justai/bot.env}
+    volumes:
+      - justai_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+volumes:
+  justai_data:
