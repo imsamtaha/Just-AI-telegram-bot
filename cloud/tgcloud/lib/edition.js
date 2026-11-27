@@ -12,7 +12,7 @@ export const editionActions=Object.freeze(Object.fromEntries(Object.entries(dest
   [`ed_${name}`,en],[`ed_${name}_ar`,ar],
 ])));
 function button(name,label,arabic){return {text:label,callback_data:`ed_${name}${arabic?'_ar':''}`};}
-export function editionPanel(kind,arabic=false,{name='',notes=0,followups=0}={}){
+export function editionPanel(kind,arabic=false,{name='',notes=0,followups=0,automaticReminders=false}={}){
   const b=(key,en,ar)=>button(key,arabic?ar:en,arabic);
   const languageRow=[button('home','English',false),button('home','العربية',true)];
   let text,rows;
@@ -24,6 +24,7 @@ export function editionPanel(kind,arabic=false,{name='',notes=0,followups=0}={})
   }else if(kind==='workspace'){
     text=arabic?`مساحتك الخاصة\nالملاحظات المحفوظة: ${notes}\nالمتابعات المعلّقة: ${followups}\nالمتابعات بتنراجع وقت تبعت رسالة جديدة، مش وإنت غايب.`:
       `YOUR PRIVATE WORKSPACE\nSaved notes: ${notes}\nPending follow-ups: ${followups}\nFollow-ups are checked when you next message, not while idle.`;
+    if(automaticReminders)text=arabic?`مساحتك الخاصة\nالملاحظات المحفوظة: ${notes}\nالمتابعات المعلّقة: ${followups}\nالتذكير تلقائي والخدمة شغّالة؛ تسجيل الخروج بيوقّفه مؤقتاً.`:`YOUR PRIVATE WORKSPACE\nSaved notes: ${notes}\nPending follow-ups: ${followups}\nAutomatic reminders active while the service runs; logout pauses delivery.`;
     rows=[[b('memory','My notes','ملاحظاتي'),b('followups','My follow-ups','متابعاتي')],
       [b('privacy','Privacy','الخصوصية'),b('logout','Log out','خروج')],[b('home','Back to home','الرئيسية')]];
   }else{

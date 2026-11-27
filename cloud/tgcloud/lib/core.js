@@ -13,6 +13,9 @@ export async function send(api, chatId, text, extra={}) {
 const reminderNotice='Cloud reminders are checked when you next message this bot, not at an unattended scheduled time.';
 const help='/home — ATLAS Special Edition\n/desk BTC-USD 1h — sourced market snapshot\n/brief BTC-USD 1h — AI explanation of snapshot\n/workspace — private workspace\n/studio — creative skills\n/login — log in privately\n/logout — end bot session\n/privacy — data privacy\n/trader — imported trader skill pack\n/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
 export function createHandler({api,store,fetch,config,now=Date.now}) {
+  const reminderNoticeText=config.automaticReminders?'Automatic reminders are checked every five seconds while the VM service runs; logged-out/expired sessions pause delivery.':reminderNotice;
+  const reminderNoticeArabic=config.automaticReminders?'المتابعة رح تنبعت تلقائياً وقت يحين موعدها والخدمة شغّالة. تسجيل الخروج أو انتهاء الجلسة بيوقّف الإرسال لحدّ ما تسجّل دخول من جديد.':arabicReminderNotice;
+  const localizedHelp=(group='help')=>arabicHelp(group,!!config.automaticReminders);
   return async function(message,ctx={}){
     if(typeof message.text!=='string'||!message.text.trim()||!message.chat?.id)return;
     const chatId=message.chat.id,owner=String(chatId),text=message.text.trim();
@@ -33,7 +36,7 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
         await store.mark(id,owner);return;
       }
       const privateChat=message.chat.type==='private';
-      if(privateChat){
+      if(privateChat&&!config.automaticReminders){
         for(const r of await store.reminders(owner)){
           if(r.status!=='pending'||r.due>now()||!await store.claim(owner,r.id))continue;
           try {await send(api,chatId,local('Follow-up: ','متابعة: ')+r.content);await store.complete(owner,r.id);}
@@ -45,7 +48,7 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
         const kind=command==='/studio'?'studio':command==='/workspace'?'workspace':'home';
         const counts=kind==='workspace'?{notes:(await store.context(owner)).notes.length,
           followups:(await store.reminders(owner)).filter(r=>r.status==='pending').length}:{};
-        const panel=editionPanel(kind,arabic,{...counts,name:typeof message.from.first_name==='string'?message.from.first_name.slice(0,40):''});
+        const panel=editionPanel(kind,arabic,{...counts,automaticReminders:!!config.automaticReminders,name:typeof message.from.first_name==='string'?message.from.first_name.slice(0,40):''});
         reply=panel.text;replyMarkup=panel.reply_markup;
       }
       else if(['/desk','/brief'].includes(command)){
@@ -69,10 +72,10 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
         reply=arabic?'اختَرت '+skills[aliases[command]].name+'. ابعت '+raw+' ومعه طلبك أو النص والبيانات اللي بدّك نحلّلها. رح نسألك بس عن التفاصيل الضرورية.':
           'Selected: '+skills[aliases[command]].name+'. Send '+raw+' followed by your request or source text/data. I will ask only for essential missing details.';
       }
-      else if(['/help','/creative'].includes(command))reply=arabic?arabicHelp():help+'\n/مساعدة — الأوامر بالعربي';
-      else if(command==='/trader')reply=arabic?arabicHelp('trader'):traderHelp();
-      else if(command==='/skills')reply=arabic?arabicHelp('skills'):Object.entries(skills).map(([k,v])=>`/${k} — ${v.name}`).join('\n');
-      else if(['/plugins','/tradingtools'].includes(command))reply=arabic?arabicHelp('tools'):toolHelp;
+      else if(['/help','/creative'].includes(command))reply=arabic?localizedHelp():help.replace(reminderNotice,reminderNoticeText)+'\n/مساعدة — الأوامر بالعربي';
+      else if(command==='/trader')reply=arabic?localizedHelp('trader'):traderHelp();
+      else if(command==='/skills')reply=arabic?localizedHelp('skills'):Object.entries(skills).map(([k,v])=>`/${k} — ${v.name}`).join('\n');
+      else if(['/plugins','/tradingtools'].includes(command))reply=arabic?localizedHelp('tools'):toolHelp;
       else if(command==='/atlas'){
         await send(api,chatId,local('Open the ATLAS dashboard. Its own sign-in requirements apply.','فيك تفتح لوحة ATLAS من هالزر. تسجيل الدخول والصلاحيات تبعها بيضلّوا مطلوبين.'),{reply_markup:{inline_keyboard:[[{text:local('Open ATLAS dashboard','افتح لوحة ATLAS'),url:config.atlasDashboardUrl||'https://justai-atlas.online/'}]]}});
         await store.mark(id,owner);return;
@@ -91,7 +94,7 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
           const m=argument.match(/^(\d{1,8})([mhd])\s+(.+)$/s),delay=m?Number(m[1])*{m:60000,h:3600000,d:86400000}[m[2]]:0;
           if(delay<60000||delay>365*86400000||m[3].length>2000)reply=local('Usage: /followup 30m <text>. Delay 1 minute–365 days; text up to 2000 characters.','مثال: /ذكرني ٣٠د راجع الخطة. المدّة من دقيقة لـ ٣٦٥ يوم، والنص لحد ٢٠٠٠ حرف.');
           else if((await store.reminders(owner)).length>=50)reply=local('Limit: 50 follow-ups. Cancel one first.','الحدّ ٥٠ متابعة. ألغي وحدة بالأوّل.');
-          else{const rid=await store.schedule(owner,m[3],now()+delay);reply=arabic?`حفظت المتابعة #${rid}.\n${arabicReminderNotice}`:`Saved follow-up #${rid}.\n${reminderNotice}`;}
+          else{const rid=await store.schedule(owner,m[3],now()+delay);reply=arabic?`حفظت المتابعة #${rid}.\n${reminderNoticeArabic}`:`Saved follow-up #${rid}.\n${reminderNoticeText}`;}
         }
       }else{
         const context=privateChat?await store.context(owner):{history:[],notes:[]};

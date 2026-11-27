@@ -203,3 +203,12 @@ A serverless JavaScript port and installer are available in [cloud/README.md](cl
 It includes AI, cloud memory, skills and tools, but tgcloud's documented SDK has
 no scheduler: cloud follow-ups are checked on the next incoming message. Read
 that guide before replacing Python polling or deploying the cloud app.
+
+## Continuous chat and automatic scheduled reminders on Azure
+
+The Special Edition can run as an always-on Node/Docker service on an Azure
+Ubuntu VM, retaining the existing JavaScript skills, private login and menus.
+See [server/README.md](server/README.md) for deployment, persistent storage,
+explicit webhook takeover, validation and rollback. Unlike tgcloud, its worker
+can deliver reminders without a new incoming message. Existing tgcloud state
+is not automatically imported; plan migration before cutover.
