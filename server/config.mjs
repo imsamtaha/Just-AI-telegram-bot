@@ -11,5 +11,5 @@ export function loadConfig(env=process.env){
   return {provider,edgeV3StatusUrl,apiKey:env[`${prefix}_API_KEY`].trim(),model:env[`${prefix}_MODEL`].trim(),
     token:env.TELEGRAM_BOT_TOKEN.trim(),automaticReminders:true,
     systemPrompt:env.BOT_SYSTEM_PROMPT||"You are Just AI. Reply in the user's language. Use supplied facts; never invent prices, actions or executions.",
-    atlasDashboardUrl:env.ATLAS_DASHBOARD_URL||'https://justai-atlas.online/'};
+    atlasDashboardUrl:env.ATLAS_DASHBOARD_URL||'https://atlas-tiger-shield-command-center.imsamtaha-ai.chatgpt.site/'};
 }

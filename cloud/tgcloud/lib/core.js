@@ -81,7 +81,7 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
       else if(command==='/skills')reply=arabic?localizedHelp('skills'):Object.entries(skills).map(([k,v])=>`/${k} — ${v.name}`).join('\n');
       else if(['/plugins','/tradingtools'].includes(command))reply=arabic?localizedHelp('tools'):toolHelp;
       else if(command==='/atlas'){
-        await send(api,chatId,local('Open the ATLAS dashboard. Its own sign-in requirements apply.','فيك تفتح لوحة ATLAS من هالزر. تسجيل الدخول والصلاحيات تبعها بيضلّوا مطلوبين.'),{reply_markup:{inline_keyboard:[[{text:local('Open ATLAS dashboard','افتح لوحة ATLAS'),url:config.atlasDashboardUrl||'https://justai-atlas.online/'}]]}});
+        await send(api,chatId,local('Open ATLAS Tiger Shield. Its own sign-in requirements apply.','فيك تفتح لوحة ATLAS Tiger Shield من هالزر. تسجيل الدخول والصلاحيات تبعها بيضلّوا مطلوبين.'),{reply_markup:{inline_keyboard:[[{text:local('Open Tiger Shield','افتح درع النمر'),url:config.atlasDashboardUrl||'https://atlas-tiger-shield-command-center.imsamtaha-ai.chatgpt.site/'}]]}});
         await store.mark(id,owner);return;
       }
       else if(toolCommands.has(command))reply=await runTool(command,argument,fetch,now());

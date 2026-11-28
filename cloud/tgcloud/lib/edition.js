@@ -35,7 +35,7 @@ export function editionPanel(kind,arabic=false,{name='',notes=0,followups=0,auto
     rows=[[b('desk','Market desk · BTC','مكتب السوق · BTC'),b('brief','AI briefing · BTC','موجز ذكي · BTC')],
       [b('council','Council v3 · Research','مجلس v3 · بحث')],
       [b('trader','Trading skills','مهارات التداول'),b('studio','Creative studio','استوديو الإبداع')],
-      [b('workspace','My workspace','مساحتي'),b('atlas','ATLAS dashboard','لوحة ATLAS')],languageRow,
+      [b('workspace','My workspace','مساحتي'),b('atlas','Tiger Shield','درع النمر')],languageRow,
       [b('help','All commands','كل الأوامر'),b('logout','Log out','خروج')]];
   }
   return {text,reply_markup:{inline_keyboard:rows}};

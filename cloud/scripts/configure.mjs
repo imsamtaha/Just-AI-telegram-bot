@@ -21,7 +21,7 @@ const prefix = provider === 'claude' ? 'ANTHROPIC' : 'OPENAI';
 const apiKey = values[`${prefix}_API_KEY`];
 const model = values[`${prefix}_MODEL`];
 if (!apiKey || !model || /YOUR_|replace_me/.test(apiKey)) throw new Error('Set a real API key and model in .env');
-const atlasDashboardUrl = values.ATLAS_DASHBOARD_URL || 'https://justai-atlas.online/';
+const atlasDashboardUrl = values.ATLAS_DASHBOARD_URL || 'https://atlas-tiger-shield-command-center.imsamtaha-ai.chatgpt.site/';
 const dashboardUrl = new URL(atlasDashboardUrl);
 if (dashboardUrl.protocol !== 'https:' || dashboardUrl.username || dashboardUrl.password) {
   throw new Error('ATLAS_DASHBOARD_URL must be an HTTPS URL without credentials');
