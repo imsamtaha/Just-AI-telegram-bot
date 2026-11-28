@@ -7,7 +7,7 @@ const commands = [
   ['ذاكرة','memory','شوف ملاحظاتك'],['انسى','forget','امسح الملاحظات وسياق الحديث'],
   ['ذكرني','followup','متابعة: /ذكرني ٣٠د راجع الخطة'],
   ['متابعات','followups','شوف المتابعات'],['الغاء','cancel','إلغاء متابعة: /الغاء ١'],
-  ['اطلس','atlas','افتح لوحة ATLAS'],
+  ['اطلس','atlas','افتح لوحة درع النمر'],
   ['احسب','calc','حساب: /احسب ٢٥٠٠*٠٫٠٢'],['وقت','time','الوقت: /وقت Asia/Beirut'],
   ['طقس','weather','الطقس: /طقس بيروت'],['سعر','quote','سعر كريبتو: /سعر BTC-USD'],
   ['مؤشرات','technical','مؤشرات: /مؤشرات BTC-USD 1h'],
@@ -37,9 +37,9 @@ const commands = [
 export function normalizeCommand(text){
   return text.split('@')[0].normalize('NFC').toLowerCase().replace(/[\u064b-\u065f\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا');
 }
-const loginCommands=[['الرئيسية','home','مساحتك بالنسخة الخاصة'],['مكتب_السوق','desk','لقطة سعر ومؤشرات: /مكتب_السوق BTC-USD 1h'],['موجز','brief','تفسير AI لبيانات السوق'],['مساحتي','workspace','ملخّص ملاحظاتك ومتابعاتك'],['استوديو','studio','مهارات الإبداع'],['دخول','login','سجّل دخولك بحساب تلغرام'],['خروج','logout','أنهي جلسة البوت'],['خصوصية','privacy','كيف بتنحفظ بياناتك']];
+const loginCommands=[['مجلس_٣','council_v3','حالة بحث v3، بلا تنفيذ صفقات'],['الرئيسية','home','مساحتك بالنسخة الخاصة'],['مكتب_السوق','desk','لقطة سعر ومؤشرات: /مكتب_السوق BTC-USD 1h'],['موجز','brief','تفسير AI لبيانات السوق'],['مساحتي','workspace','ملخّص ملاحظاتك ومتابعاتك'],['استوديو','studio','مهارات الإبداع'],['دخول','login','سجّل دخولك بحساب تلغرام'],['خروج','logout','أنهي جلسة البوت'],['خصوصية','privacy','كيف بتنحفظ بياناتك']];
 export const arabicAliases = Object.fromEntries([...commands,...loginCommands].map(([ar,en])=>[normalizeCommand('/'+ar),'/'+en]));
-Object.assign(arabicAliases,{'/الرئيسية':'/home','/نسخة_خاصة':'/edition','/استوديو':'/studio','/مساحتي':'/workspace','/مكتب_السوق':'/desk','/موجز':'/brief','/تذكر':'/remember','/تذكير':'/followup','/الذاكرة':'/memory','/اوامر':'/help'});
+Object.assign(arabicAliases,{'/مجلس_3':'/council_v3','/مجلس_٣':'/council_v3','/الرئيسية':'/home','/نسخة_خاصة':'/edition','/استوديو':'/studio','/مساحتي':'/workspace','/مكتب_السوق':'/desk','/موجز':'/brief','/تذكر':'/remember','/تذكير':'/followup','/الذاكرة':'/memory','/اوامر':'/help'});
 export function parseCommand(raw){
   const normalized=normalizeCommand(raw);
   return {command:arabicAliases[normalized]||normalized,arabic:/[\u0600-\u06ff]/.test(raw.split('@')[0])};

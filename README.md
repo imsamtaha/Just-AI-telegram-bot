@@ -212,3 +212,9 @@ See [server/README.md](server/README.md) for deployment, persistent storage,
 explicit webhook takeover, validation and rollback. Unlike tgcloud, its worker
 can deliver reminders without a new incoming message. Existing tgcloud state
 is not automatically imported; plan migration before cutover.
+
+## AWS Lightsail deployment
+
+For the same always-on Special Edition on AWS, use [server/aws/README.md](server/aws/README.md).
+Its preparation script stages the image and private environment without switching
+the live bot. Webhook takeover and service activation are explicit separate steps.

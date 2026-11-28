@@ -1,7 +1,7 @@
 import { runTool } from './tools.js';
 export const EDITION_NAME='JUST AI · ATLAS SPECIAL EDITION';
 const destinations={
-  home:['/home','/الرئيسية'],desk:['/desk BTC-USD 1h','/مكتب_السوق BTC-USD 1h'],
+  council:['/council_v3','/مجلس_٣'],home:['/home','/الرئيسية'],desk:['/desk BTC-USD 1h','/مكتب_السوق BTC-USD 1h'],
   brief:['/brief BTC-USD 1h','/موجز BTC-USD 1h'],trader:['/trader','/متداول'],
   studio:['/studio','/استوديو'],workspace:['/workspace','/مساحتي'],atlas:['/atlas','/اطلس'],
   memory:['/memory','/ذاكرة'],followups:['/followups','/متابعات'],
@@ -33,8 +33,9 @@ export function editionPanel(kind,arabic=false,{name='',notes=0,followups=0,auto
       'مساحة خاصة للتفكير، الإبداع وتحليل السوق. اختار شو بدّك تعمل هلّق.\nمكتب السوق بيعرض بيانات كريبتو من Coinbase. الموجز الذكي بيستعمل مزوّد AI تبع البوت؛ ما في تنفيذ صفقات.':
       'Your private space to think, create, and understand markets. Choose your next step.\nMarket desk uses Coinbase crypto data. AI briefing uses the bot’s configured AI provider; no orders are executed.');
     rows=[[b('desk','Market desk · BTC','مكتب السوق · BTC'),b('brief','AI briefing · BTC','موجز ذكي · BTC')],
+      [b('council','Council v3 · Research','مجلس v3 · بحث')],
       [b('trader','Trading skills','مهارات التداول'),b('studio','Creative studio','استوديو الإبداع')],
-      [b('workspace','My workspace','مساحتي'),b('atlas','ATLAS dashboard','لوحة ATLAS')],languageRow,
+      [b('workspace','My workspace','مساحتي'),b('atlas','Tiger Shield','درع النمر')],languageRow,
       [b('help','All commands','كل الأوامر'),b('logout','Log out','خروج')]];
   }
   return {text,reply_markup:{inline_keyboard:rows}};
