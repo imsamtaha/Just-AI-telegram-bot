@@ -34,3 +34,17 @@ test('configuration validates without executing shell substitutions',()=>{
     assert.notEqual(result.status,0);assert.equal(existsSync(join(target,'tgcloud','lib','private_config.js')),false);
   }finally{rmSync(target,{recursive:true,force:true});}
 });
+
+test('configuration accepts the optional v3 variable blank or configured',()=>{
+  const target=mkdtempSync(join(tmpdir(),'justai-v3-config-'));
+  try{
+    mkdirSync(join(target,'tgcloud','lib'),{recursive:true});
+    for(const url of ['', 'https://status.example.test/agent/v3/status']){
+      writeFileSync(join(target,'.env'),`AI_PROVIDER=claude\nANTHROPIC_API_KEY=fake-test-secret\nANTHROPIC_MODEL=m\nATLAS_EDGE_V3_STATUS_URL=${url}\n`);
+      const result=spawnSync(process.execPath,[resolve('scripts/configure.mjs')],{cwd:target,encoding:'utf8'});
+      assert.equal(result.status,0,result.stderr);
+      const generated=readFileSync(join(target,'tgcloud','lib','private_config.js'),'utf8');
+      assert.equal(JSON.parse(generated.split('export default ')[1].split(';')[0]).edgeV3StatusUrl,url||undefined);
+    }
+  }finally{rmSync(target,{recursive:true,force:true});}
+});

@@ -5,7 +5,7 @@ const values = {};
 for (const raw of source.split(/\r?\n/)) {
   const line = raw.trim();
   if (!line || line.startsWith('#')) continue;
-  const match = line.match(/^([A-Z_]+)\s*=\s*(.*)$/);
+  const match = line.match(/^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/);
   if (!match) throw new Error('Invalid .env line; expected NAME=value');
   let value = match[2];
   if (/^["']/.test(value)) {
