@@ -6,7 +6,7 @@ import { aliases } from '../tgcloud/lib/skills.js';
 import { toolCommands } from '../tgcloud/lib/tools.js';
 
 test('Arabic aliases cover valid core commands, tools and skills',()=>{
-  const core=new Set(['/start','/help','/skills','/plugins','/tradingtools','/trader','/remember','/memory','/forget','/followup','/followups','/cancel','/atlas','/login','/logout','/privacy','/home','/edition','/studio','/workspace','/desk','/brief']);
+  const core=new Set(['/start','/help','/skills','/plugins','/tradingtools','/trader','/remember','/memory','/forget','/followup','/followups','/cancel','/atlas','/login','/logout','/privacy','/home','/edition','/studio','/workspace','/desk','/brief','/council_v3']);
   for(const canonical of Object.values(arabicAliases))assert.ok(core.has(canonical)||toolCommands.has(canonical)||aliases[canonical],canonical);
   assert.equal(Object.values(arabicAliases).filter(c=>c.startsWith('/trader_')).length,11);
   assert.match(arabicHelp('trader'),/مسودة_امر/);

@@ -1,3 +1,4 @@
+import { councilV3Status } from './council_v3.js';
 import { editionPanel, marketSnapshot, BRIEF_INSTRUCTION, briefKeyboard } from './edition.js';
 import { requirePrivateLogin } from './access.js';
 import { parseCommand, toolArgument, arabicHelp, arabicReminderNotice } from './arabic.js';
@@ -11,7 +12,7 @@ export async function send(api, chatId, text, extra={}) {
   if(chunk)await api.sendMessage({chat_id:chatId,text:chunk,...extra});
 }
 const reminderNotice='Cloud reminders are checked when you next message this bot, not at an unattended scheduled time.';
-const help='/home — ATLAS Special Edition\n/desk BTC-USD 1h — sourced market snapshot\n/brief BTC-USD 1h — AI explanation of snapshot\n/workspace — private workspace\n/studio — creative skills\n/login — log in privately\n/logout — end bot session\n/privacy — data privacy\n/trader — imported trader skill pack\n/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
+const help='/council_v3 — v3 research status (no live activation)\n/home — ATLAS Special Edition\n/desk BTC-USD 1h — sourced market snapshot\n/brief BTC-USD 1h — AI explanation of snapshot\n/workspace — private workspace\n/studio — creative skills\n/login — log in privately\n/logout — end bot session\n/privacy — data privacy\n/trader — imported trader skill pack\n/skills — AI skills\n/plugins — utilities\n/tradingtools — trading tools\n/remember <fact>\n/memory\n/forget\n/followup 30m <text>\n/followups\n/cancel <id>\n/atlas\nPrivate chats retain six turns and 20 notes in cloud storage; context is sent to your AI provider.\n'+reminderNotice;
 export function createHandler({api,store,fetch,config,now=Date.now}) {
   const reminderNoticeText=config.automaticReminders?'Automatic reminders are checked every five seconds while the VM service runs; logged-out/expired sessions pause delivery.':reminderNotice;
   const reminderNoticeArabic=config.automaticReminders?'المتابعة رح تنبعت تلقائياً وقت يحين موعدها والخدمة شغّالة. تسجيل الخروج أو انتهاء الجلسة بيوقّف الإرسال لحدّ ما تسجّل دخول من جديد.':arabicReminderNotice;
@@ -50,6 +51,9 @@ export function createHandler({api,store,fetch,config,now=Date.now}) {
           followups:(await store.reminders(owner)).filter(r=>r.status==='pending').length}:{};
         const panel=editionPanel(kind,arabic,{...counts,automaticReminders:!!config.automaticReminders,name:typeof message.from.first_name==='string'?message.from.first_name.slice(0,40):''});
         reply=panel.text;replyMarkup=panel.reply_markup;
+      }
+      else if(['/council_v3','/v3'].includes(command)){
+        reply=await councilV3Status(fetch,config,arabic);
       }
       else if(['/desk','/brief'].includes(command)){
         try{await api.sendChatAction({chat_id:chatId,action:'typing'});}catch{}
