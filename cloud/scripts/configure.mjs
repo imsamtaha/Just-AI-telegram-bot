@@ -5,7 +5,7 @@ const values = {};
 for (const raw of source.split(/\r?\n/)) {
   const line = raw.trim();
   if (!line || line.startsWith('#')) continue;
-  const match = line.match(/^([A-Z_]+)\s*=\s*(.*)$/);
+  const match = line.match(/^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/);
   if (!match) throw new Error('Invalid .env line; expected NAME=value');
   let value = match[2];
   if (/^["']/.test(value)) {
@@ -26,7 +26,11 @@ const dashboardUrl = new URL(atlasDashboardUrl);
 if (dashboardUrl.protocol !== 'https:' || dashboardUrl.username || dashboardUrl.password) {
   throw new Error('ATLAS_DASHBOARD_URL must be an HTTPS URL without credentials');
 }
-const config = { provider, apiKey, model, atlasDashboardUrl, systemPrompt: values.BOT_SYSTEM_PROMPT || "You are Just AI. Reply in the user's language. Never invent prices, actions, or completed trades." };
+let edgeV3StatusUrl;
+if(values.ATLAS_EDGE_V3_STATUS_URL){
+  try{const u=new URL(values.ATLAS_EDGE_V3_STATUS_URL);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash)throw new Error();edgeV3StatusUrl=u.href;}catch{throw new Error('Invalid ATLAS_EDGE_V3_STATUS_URL: use HTTPS without credentials/query/fragment');}
+}
+const config = { edgeV3StatusUrl, provider, apiKey, model, atlasDashboardUrl, systemPrompt: values.BOT_SYSTEM_PROMPT || "You are Just AI. Reply in the user's language. Never invent prices, actions, or completed trades." };
 writeFileSync('tgcloud/lib/private_config.js', `// Generated locally. Do not commit. Server-side only.\nexport default ${JSON.stringify(config)};\n`, {mode:0o600});
 chmodSync('tgcloud/lib/private_config.js', 0o600);
 console.log('Server-side configuration generated; credentials were not printed.');
